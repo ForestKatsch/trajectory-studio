@@ -1,20 +1,12 @@
 
 import React from 'react';
 
-import styles from './Empty.module.css';
+import './Empty.css';
 
 function EmptyState(props) {
-  let variantStyle = '';
-
-  switch(props.variant) {
-  case 'dark':
-    variantStyle = styles.variantDark;
-    break;
-  }
-  
   return (
-    <div className={styles.emptyState + ' ' + variantStyle}>
-      <div className={styles.box}>
+    <div className={`EmptyState ${props.variant ? `variant-${props.variant}` : ''}`}>
+      <div className="box">
         <h1>{props.title}</h1>
         <h2 className="message">{props.message}</h2>
       </div>

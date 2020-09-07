@@ -22,10 +22,11 @@ export class SpatialData {
   }
 
   update(renderer, spatial) {
-
+    //
   }
 
   draw(renderer, spatial) {
+    //
   }
   
 }
@@ -95,7 +96,6 @@ export class CameraData extends SpatialData {
     this.near = near;
     this.far = far;
 
-    this.inverse_world_matrix = mat4.create();
     this.projection_matrix = mat4.create();
     
     this.uniforms = new Uniforms(this.flagDirty.bind(this));
@@ -104,7 +104,11 @@ export class CameraData extends SpatialData {
   update(renderer, spatial) {
     super.update(renderer, spatial);
     
-    mat4.invert(this.inverse_world_matrix, spatial.world_matrix);
+    // Transforms from world space to view space.
+    this.uniforms.set('uViewMatrix', spatial.world_matrix_inverse);
+    
+    // Transforms from world space to view space.
+    this.uniforms.set('uViewMatrix_i', spatial.world_matrix);
     
     mat4.perspective(this.projection_matrix, this.fov * (Math.PI/180), renderer.size[0] / renderer.size[1], this.near, this.far);
     //mat4.ortho(this.projection_matrix, -10, 10, -10, 10, -10, 10);
@@ -126,6 +130,7 @@ export default class Spatial {
     this.scale = vec3.fromValues(1, 1, 1);
 
     this.world_matrix = mat4.create();
+    this.world_matrix_inverse = mat4.create();
     this.modelview_matrix = mat4.create();
     
     this.scene = scene;
@@ -181,8 +186,11 @@ export default class Spatial {
     }
     
     if(this.scene.camera !== null) {
-      mat4.multiply(this.modelview_matrix, this.scene.camera.data.inverse_world_matrix, this.world_matrix);
+      mat4.multiply(this.modelview_matrix, this.scene.camera.world_matrix_inverse, this.world_matrix);
     }
+
+    mat4.invert(this.world_matrix_inverse, this.world_matrix);
+    this.uniforms.set('uModelMatrix_i', this.world_matrix);
     
     this.uniforms.set('uWorldMatrix', this.world_matrix);
     this.uniforms.set('uModelViewMatrix', this.modelview_matrix);

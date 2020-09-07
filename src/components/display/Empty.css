@@ -1,5 +1,5 @@
 
-.emptyState {
+.EmptyState {
   display: flex;
   
   align-items: center;
@@ -12,7 +12,7 @@
   left: 0;
 }
 
-.box {
+.EmptyState .box {
   display: flex;
   flex-direction: column;
   
@@ -25,21 +25,21 @@
   border-radius: var(--container-radius);
 }
 
-.box > * + * {
+.EmptyState .box > * + * {
   margin-top: 8px;
 }
 
-.box h1 {
+.EmptyState .box h1 {
   font-size: 1.33em;
   font-weight: bold;
 }
 
-.variantDark .box {
+.EmptyState.variant-dark .box {
   background-color: transparent;
   color: var(--page-text-primary);
 }
 
-.variantDark .box h2 {
+.EmptyState.variant-dark .box h2 {
   color: var(--page-text-secondary);
 }
 

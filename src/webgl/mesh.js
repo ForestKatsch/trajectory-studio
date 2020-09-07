@@ -100,8 +100,14 @@ export class Buffer {
     
     for(let name of Object.keys(this.attributes)) {
       let attrib = this.attributes[name];
-      gl.enableVertexAttribArray(shader.getAttribute(name));
-      gl.vertexAttribPointer(shader.getAttribute(name),
+      let attribute_location = shader.getAttribute(name);
+
+      if(attribute_location === -1) {
+        continue;
+      }
+      
+      gl.enableVertexAttribArray(attribute_location);
+      gl.vertexAttribPointer(attribute_location,
                              attrib.size,
                              gl.FLOAT,
                              attrib.normalize,

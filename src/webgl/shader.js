@@ -30,6 +30,11 @@ export class Uniforms {
   }
 }
 
+export const BLEND = {
+  OPAQUE: 0,
+  ADD: 1
+};
+
 // # `Shader`
 // This is a shader. (Dear god.)
 // It contains vertex and fragment shader sources.
@@ -65,6 +70,8 @@ export default class Shader {
     this.attributes = {};
     
     this.uniforms = {};
+
+    this.blend = BLEND.OPAQUE;
   }
 
   // Compiles a single shader stage and returns the result, or throws an error.
@@ -132,6 +139,15 @@ export default class Shader {
     this.renderer.active.shader = this;
     
     gl.useProgram(this.program);
+
+    gl.enable(gl.BLEND);
+    
+    if(this.blend === BLEND.ADD) {
+      gl.blendFunc(gl.ONE, gl.ONE);
+    } else {
+      gl.disable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ZERO);
+    }
   }
 
   isReady() {
@@ -147,7 +163,8 @@ export default class Shader {
       
       if(location === -1) {
         Logger.error(`Could not find attribute named '${name}' in shader '${this.name}'`);
-        throw new Error('webgl-shader-invalid-attribute');
+        location = -1;
+        //throw new Error('webgl-shader-invalid-attribute');
       }
       
       this.attributes[name] = location;
@@ -165,7 +182,8 @@ export default class Shader {
       
       if(location === -1) {
         Logger.error(`Could not find uniform named '${name}' in shader '${this.name}'`);
-        throw new Error('webgl-shader-invalid-uniform');
+        location = -1;
+        //throw new Error('webgl-shader-invalid-uniform');
       }
       
       this.uniforms[name] = location;

@@ -1,9 +1,10 @@
 
-import {vec3, quat, mat4} from 'gl-matrix';
+import {vec3, vec4, quat, mat4} from 'gl-matrix';
 
 import Renderer from '../../../webgl/renderer.js';
 import Scene from '../../../webgl/scene.js';
 import Material from '../../../webgl/material.js';
+import {BLEND} from '../../../webgl/shader.js';
 import Spatial, {MeshData, CameraData} from '../../../webgl/spatial.js';
 
 import default_vert from './default.vert';
@@ -12,6 +13,9 @@ import default_frag from './default.frag';
 import star_frag from './star.frag';
 import body_frag from './body.frag';
 
+import atmosphere_vert from './atmosphere.vert';
+import atmosphere_frag from './atmosphere.frag';
+
 export default class StellarRenderer extends Renderer {
 
   create() {
@@ -19,34 +23,45 @@ export default class StellarRenderer extends Renderer {
 
     this.scene = new Scene();
 
-    this.scene.uniforms.set('uStarPosition', vec3.fromValues(0, 0, 0));
+    this.scene.uniforms.set('uStarPosition', vec3.fromValues(-1000, 0, 0));
     
     //this.createShader('default', default_vert, default_frag);
     this.createShader('body', default_vert, body_frag);
     this.createShader('star', default_vert, star_frag);
-
-    this.createQuadSphere('quadsphere-potato', 2);
-    this.createQuadSphere('quadsphere-low', 6);
-    this.createQuadSphere('quadsphere-med', 16);
-    this.createQuadSphere('quadsphere-high', 24);
-    this.createQuadSphere('quadsphere-ultra', 32);
-
-    this.material = new Material(this.scene, 'body');
     
-    this.mesh = new Spatial(this.scene, 'mesh');
-    this.mesh.setData(new MeshData('quadsphere-ultra', new Material(this.scene, 'star')));
-    this.mesh.position = vec3.fromValues(0, 0, -3);
+    let shader = this.createShader('atmosphere', atmosphere_vert, atmosphere_frag);
+    shader.blend = BLEND.ADD;
 
     this.scene.uniforms.set('uColor', vec3.fromValues(1, 0.8, 0.5));
-    this.material.set('uColor', vec3.fromValues(1, 1, 1));
+    
+    this.createQuadspheres();
+    this.createPlanet();
+    this.createCamera();
+  }
 
+  createPlanet() {
+    let body = new Spatial(this.scene, 'body');
+    body.setData(new MeshData('quadsphere', new Material(this.scene, 'body')));
+    body.data.material.set('uColor', vec3.fromValues(0.3, 0.5, 0.7));
+    
+    this.scene.root.add(body);
+    
+    let atmosphere = new Spatial(this.scene, 'atmosphere');
+    atmosphere.setData(new MeshData('atmosphere', new Material(this.scene, 'atmosphere')));
+
+    atmosphere.scale = vec3.fromValues(1.1, 1.1, 1.1);
+    atmosphere.data.material.set('uAtmosphereParameters', vec4.fromValues(0.5, 0.55, 15, 1));
+    atmosphere.data.material.set('uAtmosphereRaleighScatter', vec4.fromValues(5, 10, 20, 1));
+
+    body.add(atmosphere);
+    
     this.spinny = new Spatial(this.scene, 'spinny');
-    this.mesh.add(this.spinny);
+    body.add(this.spinny);
 
     let steps = 8;
     for(let i=0; i<steps; i++) {
       let mesh = new Spatial(this.scene, `mesh-${i}`);
-      mesh.setData(new MeshData('quadsphere-potato', this.material));
+      mesh.setData(new MeshData('quadsphere', new Material(this.scene, 'body')));
 
       let angle = (i / steps) * Math.PI * 2;
       let distance = 1;
@@ -56,25 +71,40 @@ export default class StellarRenderer extends Renderer {
 
       this.spinny.add(mesh);
     }
+  }
 
+  createCamera() {
     this.camera = new Spatial(this.scene, 'camera');
     this.camera.setData(new CameraData(60, 0.01, 10000));
 
-    this.camera.position = vec3.fromValues(0, 0, 0);
-
-    this.scene.setCamera(this.camera);
+    this.camera.position = vec3.fromValues(0, 0, 2);
 
     this.scene.root.add(this.camera);
-    this.scene.root.add(this.mesh);
-    
+    this.scene.setCamera(this.camera);
+
     this.context.clearColor(0.0, 0.0, 0.0, 1.0);
+  }
+  
+  createQuadspheres() {
+    this.createQuadsphere('quadsphere', 16);
+    this.createQuadsphere('atmosphere', 8);
   }
 
   // TODO: support triangle strip generation with degenerate triangles.
   // With a `divisions` value of `0`, the sphere will be a cube.
   // With a `divisions` value of `1`, the sphere will have one dividing line.
   // With a `divisions` value of `2`, the sphere will have two dividing lines (16 faces per side.)
-  createQuadSphere(name, divisions) {
+  createQuadsphere(name, divisions, inverted) {
+    if(inverted === undefined) {
+      inverted = false;
+    }
+
+    let sign = 1;
+
+    if(inverted) {
+      sign = -1;
+    }
+    
     divisions = divisions + 2;
     
     let mesh = this.createMesh(name);
@@ -97,11 +127,11 @@ export default class StellarRenderer extends Renderer {
       for(let x=0; x<divisions; x++) {
         for(let y=0; y<divisions; y++) {
           let x_start = (x / divisions) - 0.5;
-          let y_start = (y / divisions) - 0.5;
+          let y_start = ((y / divisions) - 0.5) * sign;
           
           let x_end = ((x+1) / divisions) - 0.5;
-          let y_end = ((y+1) / divisions) - 0.5;
-          
+          let y_end = (((y+1) / divisions) - 0.5) * sign;
+
           d.position.push(vertex_function(x_start, y_start));
           d.position.push(vertex_function(x_start, y_end));
           d.position.push(vertex_function(x_end, y_end));
@@ -177,6 +207,11 @@ export default class StellarRenderer extends Renderer {
     data.normal = data.position.map((position, index) => {
       let normal = vec3.create();
       vec3.normalize(normal, position);
+
+      if(inverted) {
+        vec3.scale(normal, normal, -1);
+      }
+      
       return normal;
     });
     
@@ -189,15 +224,14 @@ export default class StellarRenderer extends Renderer {
   render() {
     let now = Date.now() / 50;
     //this.camera.flagDirty();
-    vec3.set(this.mesh.position, Math.sin(now / 32.30) * 0.1, Math.sin(now / 66.30) * 0.1, Math.sin(now / 48.30) * 0.1 - 3);
-    //vec3.set(this.camera.position, 0, 0, Math.sin(now / 90.30) * 2);
+    //vec3.set(this.position, Math.sin(now / 32.30) * 0.1, Math.sin(now / 66.30) * 0.1, Math.sin(now / 48.30) * 0.1 - 3);
+    //vec3.set(this.camera.position, 0, 0, Math.sin(now / 15) * 3 + 5);
     
-    this.scene.setUniform('uStarPosition', this.mesh.position);
+    //this.scene.setUniform('uStarPosition', this.mesh.position);
     
-    quat.fromEuler(this.mesh.rotation, Math.sin(now / 49.30) * 10, now / 10, Math.sin(now / 300) * 10);
+    //quat.fromEuler(this.mesh.rotation, Math.sin(now / 49.30) * 10, now / 10, Math.sin(now / 300) * 10);
     quat.fromEuler(this.spinny.rotation, 0, now / 1, 0);
     //this.material.set('uColor', [Math.sin(Date.now() / 50), 0, 0]);
-
     super.render();
   }
   
