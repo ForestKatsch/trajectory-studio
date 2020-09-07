@@ -7,7 +7,7 @@ import * as serviceWorker from './serviceWorker';
 import Logger from 'js-logger';
 
 Logger.useDefaults();
-Logger.setLevel(Logger.TRACE);
+Logger.setLevel(Logger.DEBUG);
 
 ReactDOM.render(
   <React.StrictMode>

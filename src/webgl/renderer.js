@@ -1,72 +1,15 @@
 
+import debounce from 'debounce';
+
 import Logger from 'js-logger';
 
-import {vec2} from "gl-matrix";
+import {vec2} from 'gl-matrix';
 
-export class Shader {
+import Shader from './shader.js';
+import Mesh from './mesh.js';
 
-  constructor(renderer, vertex, fragment) {
-    this.renderer = renderer;
-    
-    this.vertex_source = vertex;
-    this.fragment_source = fragment;
-
-    this.vertex = null;
-    this.fragment = null;
-
-    this.program = null;
-
-    this.shader = null;
-  }
-
-  // Compiles a single shader stage and returns the result, or throws an error.
-  compileShader(stage, source) {
-    let gl = this.renderer.context;
-    
-    const shader = gl.createShader(stage);
-
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      Logger.error('Error while compiling WebGL shader', gl.getShaderInfoLog(shader), source);
-      gl.deleteShader(shader);
-      throw new Error('webgl-shader-compile');
-    }
-
-    return shader;        
-  }
-
-  init() {
-    let gl = this.renderer.context;
-
-    // Use our convenience function to compile the two shaders.
-    this.vertex = this.compileShader(gl.VERTEX_SHADER, this.vertex_source);
-    this.fragment = this.compileShader(gl.FRAGMENT_SHADER, this.fragment_source);
-
-    this.program = gl.createProgram();
-    
-    gl.attachShader(this.program, this.vertex);
-    gl.attachShader(this.program, this.fragment);
-    
-    gl.linkProgram(this.program);
-
-    if(!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
-      Logger.error('Error while linking WebGL shader', gl.getProgramInfoLog(this.program));
-      throw new Error('webgl-shader-link');
-    }
-  }
-
-  deinit() {
-    let gl = this.renderer.context;
-
-    gl.deleteShader(this.vertex);
-    gl.deleteShader(this.fragment);
-    
-    gl.deleteProgram(this.program);
-  }
-  
-}
+import fallback_vert from './fallback.vert';
+import fallback_frag from './fallback.frag';
 
 // A WebGL 1 renderer.
 export default class Renderer {
@@ -76,12 +19,35 @@ export default class Renderer {
     
     this.context = null;
 
+    // The size of the canvas.
     this.size = [1, 1];
+
+    // The DPI for this canvas.
     this.dpi = 1;
 
-    this.dirty = false;
+    // Call `setDirty(true)` to force a render on the next frame.
+    this._dirty = false;
 
+    // Each key points to the currently active thing, or `null`.
+    // This can be used to avoid re-activating an already-active GL object.
+    this.active = {
+      shader: null,
+      buffer: null
+    };
+
+    // Contains all the shaders we can use, keyed by their name.
+    // A shader is not valid just because it is in this list; make sure
+    // to check `shader.isValid()` first.
     this.shaders = {};
+    
+    // Contains all the meshes.
+    this.meshes = {};
+
+    // The scene to render.
+    this.scene = null;
+
+    this.initDebounce = debounce(this.init.bind(this), 150, true);
+    this.resizeDebounce = debounce(this.resizeImmediate.bind(this), 50);
   }
 
   init() {
@@ -96,92 +62,170 @@ export default class Renderer {
       throw new Error('webgl-context-create-error');
     }
 
-    if(this.context == null) {
+    if(this.context === null) {
       Logger.error("WebGL context is null!");
       throw new Error('webgl-context-create-error');
     }
 
-    // Match our parent element's size.
-    this.resize();
-
-    // Set up the clear color.
-    let gl = this.context;
-    gl.clearColor(0.0, 0.3, 0.0, 1.0);
+    this.canvas.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault();
+      this.context = null;
+      this.deinit();
+      this.initDebounce();
+    }, false);
 
     this.initShaders();
+    this.initMeshes();
+
+    this.initCanvas();
+
+    this.create();
 
     // And kick off the first frame.
     requestAnimationFrame(this.render.bind(this));
   }
 
+  create() {
+  }
+
   // Initialize default shaders.
   initShaders() {
-    this.createShader('fallback', `
-    attribute vec4 aVertexPosition;
-    attribute vec4 aVertexNormal;
+    this.createShader('@fallback', fallback_vert, fallback_frag);
+  }
 
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uProjectionMatrix;
+  // Initialize default meshes.
+  initMeshes() {
+    let triangle = this.createMesh('@triangle');
+    triangle.createMesh({
+      aPosition: [
+        [-0.5, -0.5, 0],
+        [   0,  0.5, 0],
+        [ 0.5, -0.5, 0],
+      ]
+    }, [
+      [0, 1, 2]
+    ]);
+  }
 
-    void main() {
-      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-    }`, `
-    void main() {
-      gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);
-    }`);
+  initCanvas() {
+    // Match our parent element's size.
+    this.resizeImmediate();
+
+    // Set up the clear color.
+    let gl = this.context;
+    gl.clearColor(0.0, 0.3, 0.0, 1.0);
+    //gl.clearDepth(1.0);
+    //gl.enable(gl.DEPTH_TEST);
+    //gl.depthFunc(gl.LEQUAL);
   }
 
   // Call this function when the canvas is ready to be destroyed.
   deinit() {
     Logger.debug(`Deinitializing renderer...`);
 
-    for(let name of this.shaders) {
+    for(let name of Object.keys(this.shaders)) {
       this.shaders[name].deinit();
     }
 
     this.shaders = {};
+    
+    for(let name of Object.keys(this.meshes)) {
+      this.meshes[name].deinit();
+    }
+
+    this.meshes = {};
   }
 
   createShader(name, vertex_source, fragment_source) {
+    if(name in this.shaders) {
+      Logger.warn(`Duplicate shader '${name}' is being requested; deleting existing shader.`);
+      this.shaders[name].deinit();
+    }
+    
     Logger.debug(`Creating shader '${name}'...`);
-    let shader = new Shader(this, vertex_source, fragment_source);
+    
+    let shader = new Shader(this, name, vertex_source, fragment_source);
 
     shader.init();
 
     this.shaders[name] = shader;
+
+    return shader;
+  }
+
+  createMesh(name) {
+    if(name in this.meshes) {
+      Logger.warn(`Duplicate mesh '${name}' is being requested; deleting existing mesh.`);
+      this.meshes[name].deinit();
+    }
+    
+    Logger.debug(`Creating mesh '${name}'...`);
+    
+    let mesh = new Mesh(this, name);
+
+    this.meshes[name] = mesh;
+
+    return mesh;
   }
   
   // Automatically copies the size from the parent element of the canvas.
-  resize() {
+  resizeImmediate() {
     this.size = vec2.fromValues(this.canvas.parentElement.clientWidth, this.canvas.parentElement.clientHeight);
     this.dpi = window.devicePixelRatio;
 
-    this.canvas.width = this.size[0];
-    this.canvas.height = this.size[1];
+    this.canvas.style.width = '100%';
+    this.canvas.style.height = '100%';
+
+    this.canvas.width = this.size[0] * this.dpi;
+    this.canvas.height = this.size[1] * this.dpi;
 
     this.setDirty(true);
+    
+    Logger.debug(`Resizing renderer to ${this.size} @ ${this.dpi}x`);
+  }
+
+  resize() {
+    this.resizeDebounce();
   }
 
   setDirty(dirty) {
-    this.dirty = dirty;
+    this._dirty = dirty;
   }
 
   // The primary render function. This handles everything about rendering, from start to finish.
   render() {
-    if(this.context == null) {
+    // If we've been deinitialized, bail out.
+    if(this.context === null) {
       return;
     }
 
     requestAnimationFrame(this.render.bind(this));
 
-    if(!this.dirty) {
-      return;
+    // If we don't need to re-render, then don't.
+    if(!this._dirty) {
+      if(!(this.scene && this.scene._dirty)) {
+        return;
+      }
     }
 
-    this.dirty = false;
+    console.log('render');
+
+    this._dirty = false;
 
     let gl = this.context;
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.viewport(0, 0, this.size[0] * this.dpi, this.size[1] * this.dpi);
+
+    if(this.scene !== null) {
+      this.scene.draw(this);
+    } else {
+      Logger.warn(`No scene to draw, skipping...`);
+    }
   }
 
 }
+
+export {
+  Shader
+};
