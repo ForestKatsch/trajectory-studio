@@ -1,0 +1,35 @@
+
+.emptyState {
+  display: flex;
+  
+  align-items: center;
+  justify-content: center;
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.box {
+  display: flex;
+  flex-direction: column;
+  
+  align-items: center;
+  justify-content: center;
+
+  padding: 16px;
+
+  background-color: var(--page-1-bg);
+  border-radius: var(--container-radius);
+}
+
+.box > * + * {
+  margin-top: 8px;
+}
+
+.box h1 {
+  font-size: 1.33em;
+  font-weight: bold;
+}

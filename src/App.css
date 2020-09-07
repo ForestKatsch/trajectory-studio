@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Overpass+Mono:wght@300;700&family=Overpass:wght@400;700&display=swap');
+
+/* Define the global default variables up front. */
+:root {
+  --theme-hue: 290;
+  --page-bg: hsl(290, 30%, 0%);
+  --page-text-primary: hsl(220, 60%, 5%);
+  
+  --page-1-bg: hsl(220, 0%, 95%);
+  
+  --container-radius: 8px;
+}
+
+.App {
+  font-family: 'Overpass';
+  height: 100%;
+  width: 100%;
+
+  background: var(--page-bg);
+  color: var(--page-text-primary);
+
+  font-size: 14px;
+}
+
+.StellarViewer {
+  width: 100%;
+  height: 100%;
+}
