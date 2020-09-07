@@ -134,7 +134,7 @@ export default class Shader {
     gl.useProgram(this.program);
   }
 
-  isValid() {
+  isReady() {
     return this.program !== null;
   }
   

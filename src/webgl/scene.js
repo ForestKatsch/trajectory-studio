@@ -54,5 +54,9 @@ export default class Scene {
     this.root.draw(renderer);
   }
   
+  setUniform(name, value) {
+    this.uniforms.set(name, value);
+  }
+
 }
 

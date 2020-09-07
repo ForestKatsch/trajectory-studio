@@ -38,7 +38,7 @@ export default class Renderer {
 
     // Contains all the shaders we can use, keyed by their name.
     // A shader is not valid just because it is in this list; make sure
-    // to check `shader.isValid()` first.
+    // to check `shader.isReady()` first.
     this.shaders = {};
     
     // Contains all the meshes.
@@ -171,6 +171,14 @@ export default class Renderer {
     this.shaders[name] = shader;
 
     return shader;
+  }
+
+  getShader(name) {
+    if(name in this.shaders && this.shaders[name].isReady()) {
+      return this.shaders[name];
+    }
+
+    return this.shaders['@fallback'];
   }
 
   createMesh(name) {

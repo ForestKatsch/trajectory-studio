@@ -256,6 +256,7 @@ export default class Mesh {
 
     this.buffers['@triangles'].bind();
     gl.drawElements(gl.TRIANGLES, this.vertex_count, gl.UNSIGNED_SHORT, 0);
+    //gl.drawElements(gl.LINES, this.vertex_count, gl.UNSIGNED_SHORT, 0);
   }
 }
 

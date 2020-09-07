@@ -53,12 +53,7 @@ export class MeshData extends SpatialData {
     }
     
     let mesh = renderer.meshes[this.mesh_name];
-    let shader = renderer.shaders[this.material.shader_name];
-
-    // Make sure we have *some* sort of shader no matter what.
-    if(!shader) {
-      shader = renderer.shaders['@fallback'];
-    }
+    let shader = renderer.getShader(this.material.shader_name);
 
     if(!mesh) {
       Logger.warn(`MeshInstance for '${spatial.name}' points to non-existent mesh '${this.mesh_name}'`);
@@ -71,8 +66,8 @@ export class MeshData extends SpatialData {
     }
 
     let uniforms = {
-      ...material.uniforms.get(),
       ...spatial.scene.uniforms.get(),
+      ...material.uniforms.get(),
       ...(spatial.scene.camera ? spatial.scene.camera.data.uniforms.get() : {}),
       ...spatial.uniforms.get(),
       ...this.uniforms.get(),
@@ -84,6 +79,10 @@ export class MeshData extends SpatialData {
     mesh.draw(shader);
   }
   
+  set(name, value) {
+    this.uniforms.set(name, value);
+  }
+
 }
 
 
@@ -203,6 +202,10 @@ export default class Spatial {
     for(let child of this.children) {
       child.draw(renderer);
     }
+  }
+
+  set(name, value) {
+    this.uniforms.set(name, value);
   }
 
   setData(data) {
