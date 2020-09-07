@@ -1,6 +1,35 @@
 
 import Logger from 'js-logger';
 
+export class Uniforms {
+  
+  constructor(dirty_function) {
+    this.dirty_function = dirty_function;
+    
+    this.uniforms = {};
+  }
+
+  set(name, value) {
+    if(name in this.uniforms) {
+      if(this.uniforms[name] === value) {
+        return;
+      }
+    }
+
+    if(typeof value === typeof []) {
+      this.uniforms[name] = [...value];
+    } else {
+      this.uniforms[name] = value;
+    }
+    
+    this.dirty_function();
+  }
+
+  get() {
+    return this.uniforms;
+  }
+}
+
 // # `Shader`
 // This is a shader. (Dear god.)
 // It contains vertex and fragment shader sources.
@@ -178,6 +207,32 @@ export default class Shader {
       }
     }
 
+    // Don't debug this by default. (It just produces absolutely ridiculous amounts of spam.)
+    if(false) {
+      let value_string = '?';
+
+      if(type.startsWith('fvec') || type.startsWith('ivec') || type.startsWith('vec')) {
+        value_string = `(${value})`;
+      } else if(type.startsWith('mat')) {
+        // TODO: split this out into separate functions.
+        if(type === 'mat3') {
+          value_string = `
+${value[0]}, ${value[3]}, ${value[6]},
+${value[1]}, ${value[4]}, ${value[7]},
+${value[2]}, ${value[5]}, ${value[8]},
+`;
+        } else if(type === 'mat4') {
+          value_string = `
+${value[0]}, ${value[4]}, ${value[8]}, ${value[12]},
+${value[1]}, ${value[5]}, ${value[9]}, ${value[13]},
+${value[2]}, ${value[6]}, ${value[10]}, ${value[14]},
+${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
+        }
+      }
+      
+      Logger.debug(`Setting uniform '${name}' to:`, value_string);
+    }
+
     switch(type) {
     case 'int':
       gl.uniform1i(location, value);
@@ -198,10 +253,10 @@ export default class Shader {
       gl.uniform4fv(location, value);
       break;
     case 'mat3':
-      gl.uniformMatrix3fv(location, value);
+      gl.uniformMatrix3fv(location, false, value);
       break;
     case 'mat4':
-      gl.uniformMatrix3fv(location, value);
+      gl.uniformMatrix4fv(location, false, value);
       break;
     default:
       Logger.warn(`Cannot set uniform '${name}' with unknown type '${type}' ignoring`, value);
@@ -214,6 +269,11 @@ export default class Shader {
   // or an array of ["type", value].
   setUniforms(uniforms) {
     for(let name of Object.keys(uniforms)) {
+      
+      if(name.startsWith('@')) {
+        continue;
+      }
+      
       if(typeof uniforms[name] === typeof [] && typeof uniforms[name][0] === typeof '') {
         this.setUniform(name, uniforms[name][1], uniforms[name][0]);
       } else {

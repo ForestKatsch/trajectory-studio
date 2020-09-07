@@ -33,3 +33,13 @@
   font-size: 1.33em;
   font-weight: bold;
 }
+
+.variantDark .box {
+  background-color: transparent;
+  color: var(--page-text-primary);
+}
+
+.variantDark .box h2 {
+  color: var(--page-text-secondary);
+}
+

@@ -1,18 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Overpass+Mono:wght@300;700&family=Overpass:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Overpass+Mono:wght@400;700&family=Overpass:wght@400;700&display=swap');
 
 /* Define the global default variables up front. */
 :root {
   --theme-hue: 290;
   --page-bg: hsl(290, 30%, 0%);
-  --page-text-primary: hsl(220, 60%, 5%);
+  --page-text-primary: hsl(220, 20%, 90%);
+  --page-text-secondary: hsl(220, 10%, 60%);
   
   --page-1-bg: hsl(220, 0%, 95%);
+  --page-1-text-primary: hsl(220, 60%, 5%);
   
   --container-radius: 8px;
+  
+  font-family: 'Overpass';
 }
 
 .App {
-  font-family: 'Overpass';
   height: 100%;
   width: 100%;
 

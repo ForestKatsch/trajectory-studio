@@ -14,9 +14,10 @@ import fallback_frag from './fallback.frag';
 // A WebGL 1 renderer.
 export default class Renderer {
 
-  constructor(canvas) {
+  constructor(canvas, options) {
     this.canvas = canvas;
-    
+
+    this.options = options ? options : {};
     this.context = null;
 
     // The size of the canvas.
@@ -25,7 +26,7 @@ export default class Renderer {
     // The DPI for this canvas.
     this.dpi = 1;
 
-    // Call `setDirty(true)` to force a render on the next frame.
+    // Call `flagDirty()` to force a render on the next frame.
     this._dirty = false;
 
     // Each key points to the currently active thing, or `null`.
@@ -48,6 +49,9 @@ export default class Renderer {
 
     this.initDebounce = debounce(this.init.bind(this), 150, true);
     this.resizeDebounce = debounce(this.resizeImmediate.bind(this), 50);
+
+    // To avoid horrific error spam in the console. This should theoretically never happen.
+    this.pause_rendering = false;
   }
 
   init() {
@@ -55,7 +59,8 @@ export default class Renderer {
     
     try {
       this.context = this.canvas.getContext('webgl', {
-        alpha: false
+        alpha: false,
+        ...this.options
       });
     } catch(e) {
       Logger.error("An error was thrown while creating WebGL 1 context!", e);
@@ -105,6 +110,19 @@ export default class Renderer {
     }, [
       [0, 1, 2]
     ]);
+    
+    let square = this.createMesh('@square');
+    square.createMesh({
+      aPosition: [
+        [-0.5, -0.5, 0],
+        [-0.5,  0.5, 0],
+        [ 0.5,  0.5, 0],
+        [ 0.5, -0.5, 0],
+      ]
+    }, [
+      [0, 1, 2],
+      [2, 0, 3]
+    ]);
   }
 
   initCanvas() {
@@ -114,9 +132,11 @@ export default class Renderer {
     // Set up the clear color.
     let gl = this.context;
     gl.clearColor(0.0, 0.3, 0.0, 1.0);
-    //gl.clearDepth(1.0);
-    //gl.enable(gl.DEPTH_TEST);
-    //gl.depthFunc(gl.LEQUAL);
+    gl.clearDepth(1.0);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
   }
 
   // Call this function when the canvas is ready to be destroyed.
@@ -179,7 +199,7 @@ export default class Renderer {
     this.canvas.width = this.size[0] * this.dpi;
     this.canvas.height = this.size[1] * this.dpi;
 
-    this.setDirty(true);
+    this.flagDirty();
     
     Logger.debug(`Resizing renderer to ${this.size} @ ${this.dpi}x`);
   }
@@ -188,39 +208,46 @@ export default class Renderer {
     this.resizeDebounce();
   }
 
-  setDirty(dirty) {
-    this._dirty = dirty;
+  flagDirty() {
+    this._dirty = true;
   }
 
   // The primary render function. This handles everything about rendering, from start to finish.
   render() {
     // If we've been deinitialized, bail out.
-    if(this.context === null) {
+    if(this.context === null || this.pause_rendering) {
       return;
     }
 
     requestAnimationFrame(this.render.bind(this));
 
-    // If we don't need to re-render, then don't.
-    if(!this._dirty) {
-      if(!(this.scene && this.scene._dirty)) {
-        return;
+    try {
+      if(this.scene !== null) {
+        this.scene.update(this);
       }
-    }
+      
+      // If we don't need to re-render, then don't.
+      if(!this._dirty) {
+        if(!(this.scene && this.scene._dirty)) {
+          return;
+        }
+      }
 
-    console.log('render');
+      this._dirty = false;
 
-    this._dirty = false;
+      let gl = this.context;
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    let gl = this.context;
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.viewport(0, 0, this.size[0] * this.dpi, this.size[1] * this.dpi);
 
-    gl.viewport(0, 0, this.size[0] * this.dpi, this.size[1] * this.dpi);
-
-    if(this.scene !== null) {
-      this.scene.draw(this);
-    } else {
-      Logger.warn(`No scene to draw, skipping...`);
+      if(this.scene !== null) {
+        this.scene.draw(this);
+      } else {
+        Logger.warn(`No scene to draw, skipping...`);
+      }
+    } catch(e) {
+      this.pause_rendering = true;
+      throw e;
     }
   }
 

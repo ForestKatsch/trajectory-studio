@@ -1,5 +1,7 @@
 
-import Logger from 'js-logger';
+//import Logger from 'js-logger';
+
+import {Uniforms} from './shader.js';
 
 export default class Material {
 
@@ -8,13 +10,15 @@ export default class Material {
     
     this.shader_name = shader_name;
 
-    this._uniforms = {};
+    this.uniforms = new Uniforms(this.flagDirty.bind(this));
   }
 
-  set(uniform_name, value) {
-    this.scene.setDirty(true);
-    
-    this._uniforms[uniform_name] = value;
+  flagDirty() {
+    this.scene.flagDirty();
+  }
+
+  set(name, value) {
+    this.uniforms.set(name, value);
   }
 
 }

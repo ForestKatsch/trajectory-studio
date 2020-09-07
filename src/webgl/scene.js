@@ -3,24 +3,56 @@ import Logger from 'js-logger';
 
 import Spatial from './spatial.js';
 import Material from './material.js';
+import {Uniforms} from './shader.js';
 
 // # `Scene`
 export default class Scene {
 
   constructor() {
-    this.root = new Spatial(this);
+    this.root = new Spatial(this, '@root');
     this._dirty = true;
+
+    this.fallback_material = new Material(this, '@fallback');
+
+    // The camera used to render this scene.
+    this.camera = null;
+
+    this.uniforms = new Uniforms(this.flagDirty.bind(this));
   }
 
-  setDirty(dirty) {
-    this._dirty = dirty;
+  flagDirty() {
+    this._dirty = true;
   }
   
+  setCamera(camera) {
+    if(camera.scene !== this) {
+      Logger.warn(`Cannot set camera '${camera.name}' as default camera for scene it's not in!`);
+      return;
+    }
+    
+    this.camera = camera;
+    
+    this.flagDirty();
+  }
+
+  update(renderer) {
+    this.root.update(renderer);
+    this.root.update(renderer);
+  }
+
   // TODO: fix naive ordering, add batching.
   draw(renderer) {
-    this._dirty = false;
+    //Logger.debug(`Drawing scene...`);
     
+    this._dirty = false;
+
+    if(!this.camera) {
+      Logger.warn('No camera set in scene, skipping render...');
+      return;
+    }
+
     this.root.draw(renderer);
   }
+  
 }
 

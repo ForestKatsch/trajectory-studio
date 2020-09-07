@@ -1,0 +1,20 @@
+
+.pageHeader {
+  background-color: var(--page-1-bg);
+  color: var(--page-1-text-primary);
+  
+  width: 256px;
+  height: 48px;
+
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  border-radius: 4px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: 'Overpass Mono';
+  font-weight: bold;
+}

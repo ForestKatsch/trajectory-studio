@@ -1,8 +1,8 @@
 import React from 'react';
 import './App.css';
 
-import PageHeader from './components/page/Header.jsx';
-import StellarViewer from './components/viewer/Stellar/index.jsx';
+import PageHeader from './components/page/Header.tsx';
+import StellarViewer from './components/viewer/Stellar/index.tsx';
 
 function App() {
   return (

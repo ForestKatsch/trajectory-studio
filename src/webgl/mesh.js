@@ -1,17 +1,35 @@
 
 import Logger from 'js-logger';
 
+const MAX_VERTICES_U16 = 65536;
+
+function flatten(array) {
+  let flat = [];
+  
+  for(let i=0; i<array.length; i++) {
+    if(typeof array[i] !== typeof 0) {
+      flat.push.apply(flat, flatten(array[i]));
+    } else {
+      flat.push(array[i]);
+    }
+  }
+
+  return flat;
+}
+
 // # `Buffer`
 // A buffer is a low-level buffer that manages multiple attributes
 // in one sequential array.
 export class Buffer {
 
-  constructor(mesh, name) {
+  constructor(mesh, name, type) {
     this.renderer = mesh.renderer;
     
     this.mesh = mesh;
 
     this.name = name;
+
+    this.type = type;
 
     // The linear array of data for this buffer.
     this.data = [];
@@ -24,6 +42,8 @@ export class Buffer {
 
   // Add a named attribute.
   addAttribute(name, options) {
+    const gl = this.renderer.context;
+    
     options = {
       // The offset, in bytes, to start at.
       offset: 0,
@@ -32,7 +52,7 @@ export class Buffer {
       size: 3,
 
       // The value type.
-      type: 'float',
+      type: gl.FLOAT,
 
       // 
       normalized: false,
@@ -56,12 +76,12 @@ export class Buffer {
     }
 
     this.bind();
-    
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.data), gl.STATIC_DRAW);
+
+    gl.bufferData(this.type, this.data, gl.STATIC_DRAW);
   }
 
   // Binds this buffer if necessary.
-  bind(shader) {
+  bind() {
     const gl = this.renderer.context;
     
     if(this.renderer.active.buffer === this) {
@@ -69,8 +89,8 @@ export class Buffer {
     }
 
     this.renderer.active.buffer = this;
-    
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+
+    gl.bindBuffer(this.type, this.buffer);
   }
   
   attachShader(shader) {
@@ -80,13 +100,13 @@ export class Buffer {
     
     for(let name of Object.keys(this.attributes)) {
       let attrib = this.attributes[name];
+      gl.enableVertexAttribArray(shader.getAttribute(name));
       gl.vertexAttribPointer(shader.getAttribute(name),
                              attrib.size,
                              gl.FLOAT,
                              attrib.normalize,
                              attrib.stride,
                              attrib.offset);
-      gl.enableVertexAttribArray(shader.getAttribute(name));
     }
 
   }
@@ -128,15 +148,17 @@ export default class Mesh {
 
     // Buffers are keyed by their attribute name.
     this.buffers = {};
+
+    this.vertex_count = 0;
   }
 
-  createBuffer(name) {
+  createBuffer(name, type) {
     if(name in this.buffers) {
       Logger.warn(`Duplicate buffer '${name}' is being requested; deleting existing buffer.`);
       this.buffers[name].deinit();
     }
 
-    let buffer = new Buffer(this, name);
+    let buffer = new Buffer(this, name, type);
     
     this.buffers[name] = buffer;
 
@@ -157,25 +179,44 @@ export default class Mesh {
   //
   // TODO: optimize this function to create one interleaved buffer instead.
   createMesh(layers, triangles, options) {
+    const gl = this.renderer.context;
+    
     if(options === undefined) {
       options = {};
     }
     
     for(let layer_name of Object.keys(layers)) {
-      let buffer = this.createBuffer(layer_name);
+      let buffer = this.createBuffer(layer_name, gl.ARRAY_BUFFER);
 
-      buffer.data = layers[layer_name].flat();
+      buffer.data = new Float32Array(flatten(layers[layer_name]));
 
       buffer.addAttribute(layer_name, {
         offset: 0,
         size: 3,
-        type: 'float',
+        type: gl.FLOAT,
         stride: 0,
       });
       
       this.buffers[layer_name] = buffer;
     }
 
+    let buffer = this.createBuffer('@triangles', gl.ELEMENT_ARRAY_BUFFER);
+    buffer.data = new Uint16Array(flatten(triangles));
+
+    this.vertex_count = buffer.data.length;
+    
+    if(this.vertex_count > MAX_VERTICES_U16) {
+      Logger.warn(`Mesh '${this.name}' has too many vertices (${this.vertex_count} > ${MAX_VERTICES_U16}). Expect unexpected issues.`);
+    }
+    
+    buffer.addAttribute('@triangles', {
+      offset: 0,
+      size: 3,
+      type: gl.UNSIGNED_INT,
+      stride: 0,
+    });
+    
+    this.buffers['@triangles'] = buffer;
     this.apply();
   }
 
@@ -199,11 +240,22 @@ export default class Mesh {
   draw(shader) {
     const gl = this.renderer.context;
 
+    if(this.vertex_count < 2) {
+      return;
+    }
+
     for(let buffer_name of Object.keys(this.buffers)) {
+      if(buffer_name.startsWith('@')) {
+        continue;
+      }
+      
       this.buffers[buffer_name].attachShader(shader);
     }
 
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 3);
+    //gl.drawArrays(gl.TRIANGLE_STRIP, 0, 3);
+
+    this.buffers['@triangles'].bind();
+    gl.drawElements(gl.TRIANGLES, this.vertex_count, gl.UNSIGNED_SHORT, 0);
   }
 }
 

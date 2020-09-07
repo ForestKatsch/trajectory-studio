@@ -1,11 +1,11 @@
 
 import React from 'react';
 
-import './Header.css';
+import style from './Header.module.css';
 
 function PageHeader() {
   return (
-    <header className="PageHeader">
+    <header className={style.pageHeader}>
       <h1>Trajectory Viewer</h1>
     </header>
   );

@@ -1,13 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
+//import './index.css';
+import App from './App.tsx';
 import * as serviceWorker from './serviceWorker';
 
 import Logger from 'js-logger';
 
 Logger.useDefaults();
-Logger.setLevel(Logger.DEBUG);
+Logger.setLevel(Logger.TRACE);
 
 ReactDOM.render(
   <React.StrictMode>
