@@ -107,7 +107,7 @@ export class CameraData extends SpatialData {
     // Transforms from world space to view space.
     this.uniforms.set('uViewMatrix', spatial.world_matrix_inverse);
     
-    // Transforms from world space to view space.
+    // Transforms from view space to world space.
     this.uniforms.set('uViewMatrix_i', spatial.world_matrix);
     
     mat4.perspective(this.projection_matrix, this.fov * (Math.PI/180), renderer.size[0] / renderer.size[1], this.near, this.far);
@@ -190,7 +190,7 @@ export default class Spatial {
     }
 
     mat4.invert(this.world_matrix_inverse, this.world_matrix);
-    this.uniforms.set('uModelMatrix_i', this.world_matrix);
+    this.uniforms.set('uWorldMatrix_i', this.world_matrix_inverse);
     
     this.uniforms.set('uWorldMatrix', this.world_matrix);
     this.uniforms.set('uModelViewMatrix', this.modelview_matrix);

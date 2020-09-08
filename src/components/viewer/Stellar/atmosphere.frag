@@ -1,4 +1,4 @@
-precision mediump float;
+precision highp float;
 
 uniform vec3 uColor;
 uniform vec3 uStarPosition;
@@ -9,7 +9,8 @@ uniform vec4 uAtmosphereParameters;
 // R = red scattering; G = green scattering; B = blue scattering; A = mie power
 uniform vec4 uAtmosphereRaleighScatter;
 
-uniform mat4 uModelMatrix_i;
+uniform mat4 uWorldMatrix;
+uniform mat4 uWorldMatrix_i;
 uniform mat4 uViewMatrix;
 uniform mat4 uViewMatrix_i;
 
@@ -19,10 +20,10 @@ varying vec3 vWorldNormal;
 
 // Returns a vec3 containing <distance to sphere surface>, <distance from entry (or camera) to exit>, angle-of-incidence
 // If the ray does not intersect the sphere, the X value is negative.
-vec3 raySphereDistance(vec3 point, vec3 dir, float radius) {
+vec4 raySphereDistance(vec3 point, vec3 dir, float radius) {
   float radius2 = radius * radius;
   
-  float tca = dot(point, dir);
+  float tca = -dot(point, dir);
 
   float d2 = dot(point, point) - (tca * tca);
 
@@ -34,14 +35,14 @@ vec3 raySphereDistance(vec3 point, vec3 dir, float radius) {
   float end = tca + thc;
 
   if(d2 > (radius2)) {
-    return vec3(-1.0, -1.0, shadow);
+    return vec4(-1.0, -1.0, shadow, 0.0);
   }
 
   if(end < 0.0) {
-    return vec3(-1.0, -1.0, shadow);
+    return vec4(-1.0, -1.0, shadow, 0.0);
   }
 
-  return vec3(start, end - max(start, 0.0), shadow);
+  return vec4(start, end - max(start, 0.0), shadow, 0.0);
 }
 
 // Altitude is a floating-point value from 0..1 (where 0 is ground and 1 is sky.)
@@ -76,45 +77,53 @@ vec3 atmosphereColor(vec3 position, vec3 direction, vec3 star_direction) {
   float planet_radius = uAtmosphereParameters.x;
   float atmosphere_radius = uAtmosphereParameters.y;
 
-  vec3 atmosphere_ray = raySphereDistance(position, direction, atmosphere_radius);
+  vec4 atmosphere_ray = raySphereDistance(position, direction, atmosphere_radius);
 
   // The starting point of the ray (i.e. where it intersects with the atmosphere.)
-  vec3 ray_start = position + direction * -max(atmosphere_ray.x, 0.0);
+  vec3 ray_start = position - direction * -max(atmosphere_ray.x, 0.0);
   float ray_length = max(atmosphere_ray.y, 0.0);
   
-  vec3 planet_ray = raySphereDistance(position, direction, planet_radius);
+  vec4 planet_ray = raySphereDistance(position, direction, planet_radius);
 
   if(planet_ray.y > 0.0) {
-    ray_length = (planet_ray.x - atmosphere_ray.x) * 0.9999;
+    ray_length = (planet_ray.x - atmosphere_ray.x) * 0.999;
   }
 
+  // The total atmosphere color at this point.
   vec3 color = vec3(0.0);
 
-  float step_size = ray_length / float(SCATTERING_STEPS - 1);
+  float step_size = ray_length / float(SCATTERING_STEPS);
   
   for(int i=0; i<=SCATTERING_STEPS; i++) {
-    vec3 point = ray_start - direction * step_size * float(i);
+    // The point in the atmosphere, in model space.
+    vec3 point = ray_start + direction * step_size * float(i);
 
-    float star_distance = max(raySphereDistance(point, star_direction, atmosphere_radius).x, 0.0);
+    vec4 star_ray = raySphereDistance(point, star_direction, atmosphere_radius);
+    // The distance through the atmosphere to the sun.
+    float star_distance = max(star_ray.y, 0.0);
 
-    vec3 planet_intersection = raySphereDistance(point, star_direction, planet_radius);
+    // Cast a ray against the planet towards the sun.
+    planet_ray = raySphereDistance(point, star_direction, planet_radius);
 
-    float star_strength = 1.0;//min(-planet_intersection.x * 100.0, 1.0);
+    // How much of the sun is hitting this sample, from 0..1.
+    float star_exposure = 1.0;
 
-    if(planet_intersection.y > 0.0) {
-      star_strength = clamp(smoothstep(0.9, 1.0, planet_intersection.z), 0.0, 1.0);
+    // If the planet is in the way, calculate the smooth shadow.
+    if(planet_ray.y > 0.0) {
+      star_exposure = clamp(smoothstep(0.85, 1.0, planet_ray.z), 0.0, 1.0);
     }
-    
+
+    // The optical depth (= approximate density) of the atmosphere along the ray towards the star.
     float star_ray_optical_depth = atmosphereOpticalDepth(point, star_direction, star_distance);
-    
-    float view_ray_optical_depth = atmosphereOpticalDepth(point, direction, step_size);
+    float view_ray_optical_depth = atmosphereOpticalDepth(point, -direction, step_size);
 
+    // Mie scattering. Essentially a power curve when we're between the viewer and the sun.
     float mie = uAtmosphereParameters.w * pow(max(dot(star_direction, direction), 0.0), uAtmosphereRaleighScatter.w);
-
+    
     vec3 transmittance = exp(-(star_ray_optical_depth + view_ray_optical_depth) * uAtmosphereRaleighScatter.rgb);
 
-    color += densityAtPoint(point) * transmittance * uAtmosphereRaleighScatter.rgb * step_size * star_strength;
-    color += mie * densityAtPoint(point) * transmittance * step_size * star_strength;
+    color += densityAtPoint(point) * transmittance * uAtmosphereRaleighScatter.rgb * step_size * star_exposure;
+    color += mie * densityAtPoint(point) * transmittance * step_size * star_exposure;
   }
 
   return color;
@@ -122,10 +131,16 @@ vec3 atmosphereColor(vec3 position, vec3 direction, vec3 star_direction) {
 
 void main() {
   // The direction of the star, in world space.
-  vec3 star_direction = normalize(vWorldPosition - uStarPosition);
+  //vec3 star_direction = normalize(vWorldPosition - uStarPosition);
   
-  vec3 camera_position = uViewMatrix_i[3].xyz;
-  vec3 view_direction = normalize(camera_position - vWorldPosition);
+  //vec3 camera_position = uViewMatrix_i[3].xyz;
+  //vec3 view_direction = normalize(vWorldPosition - camera_position);
+  
+  vec3 star_direction = normalize((uWorldMatrix_i * vec4(uStarPosition - vWorldPosition, 0.0)).xyz);
+  
+  vec3 camera_position = (uWorldMatrix_i * vec4(uViewMatrix_i[3].xyz, 1.0)).xyz;
+  vec3 view_direction = normalize((uWorldMatrix_i * vec4(vWorldPosition, 1.0)).xyz - camera_position);
+  //vec3 view_direction = normalize((uWorldMatrix_i * vec4(vWorldPosition - camera_position, 0.0)).xyz);
   
   gl_FragColor = vec4(atmosphereColor(camera_position, view_direction, star_direction), 1.0);
 }

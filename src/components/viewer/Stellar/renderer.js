@@ -4,7 +4,7 @@ import {vec3, vec4, quat, mat4} from 'gl-matrix';
 import Renderer from '../../../webgl/renderer.js';
 import Scene from '../../../webgl/scene.js';
 import Material from '../../../webgl/material.js';
-import {BLEND} from '../../../webgl/shader.js';
+import {BLEND, DEPTH} from '../../../webgl/shader.js';
 import Spatial, {MeshData, CameraData} from '../../../webgl/spatial.js';
 
 import default_vert from './default.vert';
@@ -23,14 +23,13 @@ export default class StellarRenderer extends Renderer {
 
     this.scene = new Scene();
 
-    this.scene.uniforms.set('uStarPosition', vec3.fromValues(-1000, 0, 0));
-    
     //this.createShader('default', default_vert, default_frag);
     this.createShader('body', default_vert, body_frag);
     this.createShader('star', default_vert, star_frag);
     
     let shader = this.createShader('atmosphere', atmosphere_vert, atmosphere_frag);
-    shader.blend = BLEND.ADD;
+    shader.blend_mode = BLEND.ADD;
+    shader.depth_mode = DEPTH.READ_ONLY;
 
     this.scene.uniforms.set('uColor', vec3.fromValues(1, 0.8, 0.5));
     
@@ -50,10 +49,12 @@ export default class StellarRenderer extends Renderer {
     atmosphere.setData(new MeshData('atmosphere', new Material(this.scene, 'atmosphere')));
 
     atmosphere.scale = vec3.fromValues(1.1, 1.1, 1.1);
-    atmosphere.data.material.set('uAtmosphereParameters', vec4.fromValues(0.5, 0.55, 15, 1));
-    atmosphere.data.material.set('uAtmosphereRaleighScatter', vec4.fromValues(5, 10, 20, 1));
+    atmosphere.data.material.set('uAtmosphereParameters', vec4.fromValues(1 / 1.1 / 2, 1 / 2, 25, 800));
+    atmosphere.data.material.set('uAtmosphereRaleighScatter', vec4.fromValues(25, 50, 100, 70));
 
     body.add(atmosphere);
+
+    this.body = body;
     
     this.spinny = new Spatial(this.scene, 'spinny');
     body.add(this.spinny);
@@ -222,15 +223,19 @@ export default class StellarRenderer extends Renderer {
   }
 
   render() {
-    let now = Date.now() / 50;
+    let now = Date.now() / 100;
     //this.camera.flagDirty();
-    //vec3.set(this.position, Math.sin(now / 32.30) * 0.1, Math.sin(now / 66.30) * 0.1, Math.sin(now / 48.30) * 0.1 - 3);
+    //vec3.set(this.body.position, Math.sin(now / 32.30) * 0.5, Math.sin(now / 66.30) * 0.5, 0);
     //vec3.set(this.camera.position, 0, 0, Math.sin(now / 15) * 3 + 5);
     
     //this.scene.setUniform('uStarPosition', this.mesh.position);
     
-    //quat.fromEuler(this.mesh.rotation, Math.sin(now / 49.30) * 10, now / 10, Math.sin(now / 300) * 10);
-    quat.fromEuler(this.spinny.rotation, 0, now / 1, 0);
+    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 0, Math.cos(now / 10.0) *100));
+    this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 50, Math.cos(now / 10.0) *100));
+    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(-1000, 0, 0));
+    
+    //quat.fromEuler(this.body.rotation, Math.sin(now / 30.30) * 50, 0, Math.sin(now / 10) * 50);
+    //quat.fromEuler(this.spinny.rotation, 0, now / 1, 0);
     //this.material.set('uColor', [Math.sin(Date.now() / 50), 0, 0]);
     super.render();
   }
