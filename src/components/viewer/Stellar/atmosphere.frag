@@ -57,7 +57,7 @@ float densityAtPoint(vec3 position) {
   return densityAtAltitude(altitude);
 }
 
-const int OPTICAL_DEPTH_STEPS = 4;
+const int OPTICAL_DEPTH_STEPS = 6;
 float atmosphereOpticalDepth(vec3 position, vec3 direction, float ray_length) {
   vec3 point = position;
   float step_size = ray_length / float(OPTICAL_DEPTH_STEPS - 1);
@@ -71,7 +71,7 @@ float atmosphereOpticalDepth(vec3 position, vec3 direction, float ray_length) {
   return opticalDepth;
 }
 
-const int SCATTERING_STEPS = 16;
+const int SCATTERING_STEPS = 8;
 
 vec3 atmosphereColor(vec3 position, vec3 direction, vec3 star_direction) {
   float planet_radius = uAtmosphereParameters.x;
@@ -110,7 +110,7 @@ vec3 atmosphereColor(vec3 position, vec3 direction, vec3 star_direction) {
 
     // If the planet is in the way, calculate the smooth shadow.
     if(planet_ray.y > 0.0) {
-      star_exposure = clamp(smoothstep(0.85, 1.0, planet_ray.z), 0.0, 1.0);
+      star_exposure = smoothstep(0.5, 1.0, planet_ray.z);
     }
 
     // The optical depth (= approximate density) of the atmosphere along the ray towards the star.
@@ -120,10 +120,10 @@ vec3 atmosphereColor(vec3 position, vec3 direction, vec3 star_direction) {
     // Mie scattering. Essentially a power curve when we're between the viewer and the sun.
     float mie = uAtmosphereParameters.w * pow(max(dot(star_direction, direction), 0.0), uAtmosphereRaleighScatter.w);
     
-    vec3 transmittance = exp(-(star_ray_optical_depth + view_ray_optical_depth) * uAtmosphereRaleighScatter.rgb);
+    vec3 transmittance = exp(-(star_ray_optical_depth + view_ray_optical_depth) * uAtmosphereRaleighScatter.rgb) * star_exposure;
 
-    color += densityAtPoint(point) * transmittance * uAtmosphereRaleighScatter.rgb * step_size * star_exposure;
-    color += mie * densityAtPoint(point) * transmittance * step_size * star_exposure;
+    color += densityAtPoint(point) * transmittance * uAtmosphereRaleighScatter.rgb * step_size;
+    color += mie * densityAtPoint(point) * transmittance * step_size;
   }
 
   return color;

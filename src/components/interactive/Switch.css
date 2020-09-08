@@ -1,0 +1,62 @@
+
+.Switch {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  min-width: 32px;
+}
+
+.Switch__label {
+  flex: 1;
+  font-weight: 500;
+  min-width: 96px;
+
+  color: var(--widget-inactive-text);
+}
+
+.Switch__element {
+  position: relative;
+  display: block;
+  
+  border-radius: var(--widget-radius);
+  width: 32px;
+  height: 16px;
+  background-color: var(--widget-inset);
+  box-shadow: inset 0 0 0 2px var(--widget-inactive-border), inset 0 2px 8px var(--widget-inactive-shadow);
+  
+  transition: transform 0.1s ease-out, box-shadow 0.05s ease-out;
+}
+
+.Switch__element::after {
+  position: absolute;
+  display: block;
+  content: '';
+  
+  background-color: var(--widget-inactive-highlight);
+  border-radius: var(--widget-radius);
+  width: 16px;
+  height: 24px;
+  box-shadow: inset 0 0 0 7px var(--widget-inactive), 0 0 6px 1px var(--widget-inactive-glow);
+  left: 0;
+  top: -4px;
+
+  transition: transform 0.1s ease-out, background-color 0.05s ease-out;
+}
+
+.Switch--checked .Switch__element {
+  box-shadow: inset 0 0 0 2px var(--widget-active-border), inset 0 2px 8px var(--widget-active-shadow);
+}
+
+.Switch--checked .Switch__label {
+  font-weight: 700;
+  color: var(--widget-active-text);
+}
+
+.Switch--checked .Switch__element::after {
+  transform: translateX(16px);
+  
+  background-color: var(--widget-active-highlight);
+  box-shadow: inset 0 0 0 7px var(--widget-active), 0 0 8px 2px var(--widget-active-glow);
+}

@@ -1,0 +1,41 @@
+
+.StellarViewer {
+  background-color: var(--html-bg);
+}
+
+.StellarViewer__options {
+  background-color: var(--page-bg);
+  color: var(--page-text-primary);
+
+  border-radius: var(--container-radius);
+
+  position: absolute;
+
+  top: 16px;
+  right: 16px;
+
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px;
+  min-width: 256px;
+}
+
+.StellarViewer__options .stats {
+  border-top: 2px dashed var(--widget-inactive-border);
+  margin-top: 8px;
+  padding-top: 8px;
+
+  display: none;
+}
+
+.StellarViewer--stats-visible .StellarViewer__options .stats {
+  display: block;
+}
+
+.StellarViewer__options .stats li {
+  list-style-type: none;
+  height: 32px;
+  line-height: 32px;
+}
+
+  

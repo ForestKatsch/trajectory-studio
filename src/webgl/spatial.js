@@ -76,7 +76,10 @@ export class MeshData extends SpatialData {
 
     shader.use();
     shader.setUniforms(uniforms);
-    
+
+    renderer.performance.draw_call_count += 1;
+    renderer.performance.vertex_count += mesh.vertex_count;
+
     mesh.draw(shader);
   }
   
@@ -212,8 +215,18 @@ export default class Spatial {
     }
   }
 
-  set(name, value) {
+  setUniform(name, value) {
     this.uniforms.set(name, value);
+  }
+
+  setEnabled(enabled) {
+    if(this.enabled === enabled) {
+      return;
+    }
+
+    this.enabled = enabled;
+
+    this.flagDirty();
   }
 
   setData(data) {

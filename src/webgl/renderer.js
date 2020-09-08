@@ -36,6 +36,17 @@ export default class Renderer {
       buffer: null
     };
 
+    this.performance = {
+      vertex_count: 0,
+      draw_call_count: 0,
+      fps: 0,
+      frametime_samples: 0,
+      frametime_total: 0,
+      frame_start: 0,
+
+      current_frame: 0,
+    };
+
     // Contains all the shaders we can use, keyed by their name.
     // A shader is not valid just because it is in this list; make sure
     // to check `shader.isReady()` first.
@@ -224,7 +235,7 @@ export default class Renderer {
   render() {
     // If we've been deinitialized, bail out.
     if(this.context === null || this.pause_rendering) {
-      return;
+      return false;
     }
 
     requestAnimationFrame(this.render.bind(this));
@@ -237,7 +248,8 @@ export default class Renderer {
       // If we don't need to re-render, then don't.
       if(!this._dirty) {
         if(!(this.scene && this.scene._dirty)) {
-          return;
+          this.performance.frame_start = -1;
+          return false;
         }
       }
 
@@ -248,11 +260,34 @@ export default class Renderer {
 
       gl.viewport(0, 0, this.size[0] * this.dpi, this.size[1] * this.dpi);
 
+      this.performance.vertex_count = 0;
+      this.performance.draw_call_count = 0;
+      
       if(this.scene !== null) {
         this.scene.draw(this);
       } else {
         Logger.warn(`No scene to draw, skipping...`);
       }
+      
+      let end = Date.now() / 1000;
+
+      if(this.performance.frame_start > 0) {
+        this.performance.frametime_total += end - this.performance.frame_start;
+        this.performance.frametime_samples += 1;
+        
+        if(this.performance.frametime_samples > 8) {
+          this.performance.fps = this.performance.frametime_samples / this.performance.frametime_total;
+
+          this.performance.frametime_total = 0;
+          this.performance.frametime_samples = 0;
+        }
+      }
+
+      this.performance.frame_start = end;
+      
+      this.performance.current_frame += 1;
+
+      return true;
     } catch(e) {
       this.pause_rendering = true;
       throw e;

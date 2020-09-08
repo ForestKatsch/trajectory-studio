@@ -1,6 +1,6 @@
 
-header.PageHeader {
-  background-color: var(--page-1-bg);
+.PageHeader {
+  background-color: var(--page-bg);
   width: 256px;
   height: 48px;
 
@@ -13,6 +13,5 @@ header.PageHeader {
   align-items: center;
   justify-content: center;
 
-  font-family: 'Overpass Mono';
   font-weight: bold;
 }

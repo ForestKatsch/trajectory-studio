@@ -31,38 +31,53 @@ export default class StellarRenderer extends Renderer {
     shader.blend_mode = BLEND.ADD;
     shader.depth_mode = DEPTH.READ_ONLY;
 
-    this.scene.uniforms.set('uColor', vec3.fromValues(1, 0.8, 0.5));
+    this.scene.uniforms.set('uColor', vec3.fromValues(1, 1, 1));
     
     this.createQuadspheres();
     this.createPlanet();
     this.createCamera();
+
+    this.options = {
+      display_atmospheres: true
+    };
+  }
+
+  setOption(name, value) {
+    this.options[name] = value;
+
+    if(this.scene !== null) {
+      this.scene.flagDirty();
+    }
   }
 
   createPlanet() {
     let body = new Spatial(this.scene, 'body');
     body.setData(new MeshData('quadsphere', new Material(this.scene, 'body')));
-    body.data.material.set('uColor', vec3.fromValues(0.3, 0.5, 0.7));
+    body.data.material.set('uColor', vec3.fromValues(0.5, 0.5, 0.5));
     
     this.scene.root.add(body);
     
+    this.spinny = new Spatial(this.scene, 'spinny');
+    body.add(this.spinny);
+
     let atmosphere = new Spatial(this.scene, 'atmosphere');
     atmosphere.setData(new MeshData('atmosphere', new Material(this.scene, 'atmosphere')));
 
-    atmosphere.scale = vec3.fromValues(1.1, 1.1, 1.1);
-    atmosphere.data.material.set('uAtmosphereParameters', vec4.fromValues(1 / 1.1 / 2, 1 / 2, 25, 800));
-    atmosphere.data.material.set('uAtmosphereRaleighScatter', vec4.fromValues(25, 50, 100, 70));
+    atmosphere.scale = vec3.fromValues(1.2, 1.2, 1.2);
+    atmosphere.data.material.set('uAtmosphereParameters', vec4.fromValues(1 / 1.2 / 2, 1 / 2, 40, 1500));
+    atmosphere.data.material.set('uAtmosphereRaleighScatter', vec4.fromValues(50, 70, 130, 50));
+
+    this.atmosphere = atmosphere;
 
     body.add(atmosphere);
 
     this.body = body;
     
-    this.spinny = new Spatial(this.scene, 'spinny');
-    body.add(this.spinny);
-
-    let steps = 8;
+    let steps = 1;
     for(let i=0; i<steps; i++) {
       let mesh = new Spatial(this.scene, `mesh-${i}`);
       mesh.setData(new MeshData('quadsphere', new Material(this.scene, 'body')));
+      mesh.setUniform('uColor', vec3.fromValues(1.0, 1.0, 1.0));
 
       let angle = (i / steps) * Math.PI * 2;
       let distance = 1;
@@ -87,7 +102,7 @@ export default class StellarRenderer extends Renderer {
   }
   
   createQuadspheres() {
-    this.createQuadsphere('quadsphere', 16);
+    this.createQuadsphere('quadsphere', 32);
     this.createQuadsphere('atmosphere', 8);
   }
 
@@ -224,6 +239,9 @@ export default class StellarRenderer extends Renderer {
 
   render() {
     let now = Date.now() / 100;
+
+    this.atmosphere.setEnabled(this.options.display_atmospheres);
+    
     //this.camera.flagDirty();
     //vec3.set(this.body.position, Math.sin(now / 32.30) * 0.5, Math.sin(now / 66.30) * 0.5, 0);
     //vec3.set(this.camera.position, 0, 0, Math.sin(now / 15) * 3 + 5);
@@ -231,13 +249,22 @@ export default class StellarRenderer extends Renderer {
     //this.scene.setUniform('uStarPosition', this.mesh.position);
     
     //this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 0, Math.cos(now / 10.0) *100));
-    this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 50, Math.cos(now / 10.0) *100));
-    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(-1000, 0, 0));
+    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
+    this.scene.uniforms.set('uStarPosition', vec3.fromValues(100, 40, 100));
+    this.scene.uniforms.set('uStarPosition', vec3.fromValues(0, 50, -100));
     
     //quat.fromEuler(this.body.rotation, Math.sin(now / 30.30) * 50, 0, Math.sin(now / 10) * 50);
-    //quat.fromEuler(this.spinny.rotation, 0, now / 1, 0);
+    quat.fromEuler(this.spinny.rotation, 0, 220, 0);
     //this.material.set('uColor', [Math.sin(Date.now() / 50), 0, 0]);
-    super.render();
+    
+    if(super.render()) {
+      this.viewer.setState(state => ({
+        stats_fps: this.performance.fps,
+        stats_vertex_count: this.performance.vertex_count,
+        stats_draw_call_count: this.performance.draw_call_count,
+      }));
+    }
+    
   }
   
 }
