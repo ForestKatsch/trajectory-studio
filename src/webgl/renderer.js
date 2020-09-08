@@ -26,6 +26,12 @@ export default class Renderer extends Asset {
     
     this.canvas = canvas;
 
+    // Set to `true` to disable rendering except when resizing.
+    this.paused = false;
+
+    // This is set when the renderer needs to re-render.
+    this.render_required = false;
+    
     this.options = {
       max_anisotropy_level: 16,
       scale: 1,
@@ -84,7 +90,7 @@ export default class Renderer extends Asset {
     this.resizeDebounce = debounce(this.resizeImmediate.bind(this), 50);
 
     // To avoid horrific error spam in the console. This should theoretically never happen.
-    this.pause_rendering = false;
+    this.terminate_rendering = false;
 
     this.handleLoaderStateChange = this.handleLoaderStateChange.bind(this);
     this.handleLoaderChildStateChange = this.handleLoaderChildStateChange.bind(this);
@@ -395,6 +401,7 @@ export default class Renderer extends Asset {
     this.canvas.height = this.size[1] * this.dpi;
 
     this.flagDirty();
+    this.render_required = true;
     
     Logger.debug(`Resizing renderer to ${this.size} @ ${this.dpi}x`);
   }
@@ -461,10 +468,27 @@ export default class Renderer extends Asset {
     }
   }
 
+  // If we should render this frame or not.
+  shouldRender() {
+    // If we don't need to re-render, then don't.
+    if(!this._dirty && !this.render_required) {
+      if(!(this.scene && this.scene._dirty)) {
+        this.performance.frame_start = -1;
+        return false;
+      }
+    }
+
+    if(this.paused && !this.render_required) {
+      return false;
+    }
+
+    return true;
+  }
+
   // The primary render function. This handles everything about rendering, from start to finish.
   render() {
     // If we've been deinitialized, bail out.
-    if(this.context === null || this.pause_rendering) {
+    if(this.context === null || this.terminate_rendering) {
       return false;
     }
 
@@ -474,17 +498,14 @@ export default class Renderer extends Asset {
       if(this.scene !== null) {
         this.scene.update(this);
       }
-      
-      // If we don't need to re-render, then don't.
-      if(!this._dirty) {
-        if(!(this.scene && this.scene._dirty)) {
-          this.performance.frame_start = -1;
-          return false;
-        }
+
+      if(!this.shouldRender()) {
+        return false;
       }
-
+      
       this._dirty = false;
-
+      this.render_required = false;
+      
       let gl = this.context;
       
       this.setBlendMode(BLEND.OPAQUE);
@@ -523,7 +544,7 @@ export default class Renderer extends Asset {
 
       return true;
     } catch(e) {
-      this.pause_rendering = true;
+      this.terminate_rendering = true;
       throw e;
     }
   }

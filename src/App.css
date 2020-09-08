@@ -4,16 +4,17 @@
 :root {
   --html-bg: hsl(220, 50%, 5%);
   
-  --page-bg: hsl(220, 10%, 95%);
-  --page-text-primary: hsl(220, 20%, 10%);
-  --page-text-secondary: hsl(220, 10%, 60%);
+  --bg: hsl(220, 10%, 95%);
+  --text-primary: hsl(220, 20%, 10%);
+  --text-secondary: hsl(220, 10%, 60%);
+  --icon: hsl(220, 10%, 100%);
 
   --widget-inset: hsl(220, 15%, 80%);
   
   --container-radius: 8px;
   --widget-radius: 4px;
 
-  --widget-inactive-text: hsl(220, 20%, 10%);
+  --widget-inactive-text: hsl(220, 20%, 20%);
   --widget-active-text: hsl(220, 20%, 0%);
 
   --widget-highlight: hsl(220, 0%, 100%);
@@ -41,12 +42,45 @@
   width: 100%;
 
   background: var(--html-bg);
-  color: var(--page-text-primary);
+  color: var(--text-primary);
 
   font-size: 12px;
+
+  /*(
+  --bg: hsl(220, 10%, 95%);
+  --text-primary: hsl(220, 20%, 10%);
+  --text-secondary: hsl(220, 10%, 60%);
+  --icon: hsl(220, 10%, 0%);
+
+  --widget-inset: hsl(220, 15%, 80%);
+  
+  --container-radius: 8px;
+  --widget-radius: 4px;
+
+  --widget-inactive-text: hsl(220, 20%, 20%);
+  --widget-active-text: hsl(220, 20%, 0%);
+
+  --widget-highlight: hsl(220, 0%, 100%);
+  
+  --widget-inactive: hsl(220, 10%, 50%);
+  --widget-active: hsl(220, 0%, 15%);
+  
+  --widget-inactive-highlight: var(--widget-inset);
+  --widget-active-highlight: hsl(220, 0%, 100%);
+  
+  --widget-inactive-shadow: hsla(220, 0%, 0%, 0.1);
+  --widget-active-shadow: hsla(220, 0%, 0%, 0.5);
+  
+  --widget-inactive-border: hsl(220, 10%, 70%);
+  --widget-active-border: hsl(220, 10%, 40%);
+  
+  --widget-inactive-glow: hsla(220, 0%, 100%, 0.7);
+  --widget-active-glow: hsla(220, 0%, 100%, 0.9);
+*/
+  
 }
 
-.StellarViewer {
+.OrreryViewer {
   width: 100%;
   height: 100%;
 }

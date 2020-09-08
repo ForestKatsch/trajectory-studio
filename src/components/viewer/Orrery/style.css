@@ -1,9 +1,9 @@
 
-.StellarViewer {
+.OrreryViewer {
   background-color: var(--html-bg);
 }
 
-.StellarViewer canvas {
+.OrreryViewer canvas {
   min-width: 100%;
   min-height: 100%;
   object-fit: cover;
@@ -13,13 +13,32 @@
   transition: opacity 0.5s ease-out;
 }
   
-.StellarViewer--loaded canvas {
+.OrreryViewer--loaded canvas {
   opacity: 1;
 }
 
-.StellarViewer__options {
-  background-color: var(--page-bg);
-  color: var(--page-text-primary);
+.OrreryViewer__loading {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: opacity 0.5s ease-out;
+}
+
+.OrreryViewer--loaded .OrreryViewer__loading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.OrreryViewer__options {
+  background-color: var(--bg);
+  color: var(--text-primary);
 
   border-radius: var(--container-radius);
 
@@ -34,14 +53,14 @@
   min-width: 256px;
 }
 
-.StellarViewer__options .stats {
+.OrreryViewer__options .stats {
   border-top: 2px dashed var(--widget-inactive-border);
   margin-top: 8px;
   padding-top: 8px;
   display: block;
 }
 
-.StellarViewer__options .stats li {
+.OrreryViewer__options .stats li {
   list-style-type: none;
   height: 32px;
   line-height: 32px;

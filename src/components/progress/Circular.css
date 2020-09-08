@@ -8,9 +8,17 @@
   }
 }
 
-.CircularProgressIcon {
+.CircularProgress--spinning {
+  display: inline-block;
+}
+
+.CircularProgress--spinning svg {
   animation-timing-function: linear;
   animation-name: spin;
-  animation-duration: 1s;
+  animation-duration: 1.5s;
   animation-iteration-count: infinite;
+}
+
+.CircularProgress svg g path {
+  stroke: var(--icon) !important;
 }

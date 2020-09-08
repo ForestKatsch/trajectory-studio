@@ -52,6 +52,16 @@ const cssModuleRegex = /\.module\.css$/;
 const sassRegex = /\.(scss|sass)$/;
 const sassModuleRegex = /\.module\.(scss|sass)$/;
 
+const copyPatterns = [
+  {
+    from: 'src/components/viewer/Orrery/bodies/earth/{earth,color}.jpg',
+    to: 'static/stellar/bodies/',
+    transformPath(target, absolute) {
+      return target.replace('src/components/viewer/Orrery/bodies/', '');
+    }
+  }
+];
+
 // This is the production and development configuration.
 // It is focused on developer experience, fast rebuilds, and a minimal bundle.
 module.exports = function(webpackEnv) {
@@ -432,17 +442,7 @@ module.exports = function(webpackEnv) {
             },
             {
               test: /\.svg$/,
-              use: [
-                {
-                  loader: "babel-loader"
-                },
-                {
-                  loader: "react-svg-loader",
-                  options: {
-                    jsx: true // true outputs JSX tags
-                  }
-                }
-              ]
+              loader: 'svg-inline-loader'
             },
             // "postcss" loader applies autoprefixer to our CSS.
             // "css" loader resolves paths in CSS and adds assets as dependencies.
@@ -534,15 +534,7 @@ module.exports = function(webpackEnv) {
     },
     plugins: [
       new CopyPlugin({
-        patterns: [
-          {
-            from: 'src/components/viewer/Stellar/bodies/**/*.jpg',
-            to: 'static/stellar/bodies/',
-            transformPath(target, absolute) {
-              return target.replace('src/components/viewer/Stellar/bodies/', '');
-            }
-          }
-        ],
+        patterns: copyPatterns,
       }),
       // Generates an `index.html` file with the <script> injected.
       new HtmlWebpackPlugin(

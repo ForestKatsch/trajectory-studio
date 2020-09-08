@@ -4,7 +4,7 @@ import AnimateHeight from 'react-animate-height';
 
 import Logger from 'js-logger';
 
-import StellarRenderer from './renderer.js';
+import OrreryRenderer from './renderer.js';
 import EmptyState from '../../display/Empty.jsx';
 
 import Switch from '../../interactive/Switch.jsx';
@@ -13,7 +13,7 @@ import CircularProgress from '../../progress/Circular.jsx';
 import './style.css';
 
 // A 3D viewer for stellar bodies and orbits.
-class StellarViewer extends React.Component {
+class OrreryViewer extends React.Component {
   
   constructor(props) {
     super(props);
@@ -41,7 +41,7 @@ class StellarViewer extends React.Component {
   }
 
   componentDidMount() {
-    this.renderer = new StellarRenderer(this.canvas.current);
+    this.renderer = new OrreryRenderer(this.canvas.current);
 
     this.initRenderer();
 
@@ -112,10 +112,13 @@ class StellarViewer extends React.Component {
     }
     
     return (
-      <section className={`StellarViewer ${this.state.loaded ? 'StellarViewer--loaded' : ''}`}>
+      <section className={`OrreryViewer ${this.state.loaded ? 'OrreryViewer--loaded' : ''}`}>
         <canvas ref={this.canvas}></canvas>
+        <div className="OrreryViewer__loading">
+          <CircularProgress size={64} />
+        </div>
         {emptyState}
-        <div className="StellarViewer__options">
+        <div className="OrreryViewer__options">
           <Switch
             label="Pause Renderer"
             checked={this.state.paused}
@@ -137,7 +140,7 @@ class StellarViewer extends React.Component {
             onChange={this.createSwitchHandler('display_stats')}
           />
           <AnimateHeight
-            duration="150"
+            duration={150}
             height={this.state.display_stats ? 'auto' : 0}
           >
             <ul className={`stats`}>
@@ -146,7 +149,7 @@ class StellarViewer extends React.Component {
               <li>{this.state.stats_vertex_count} vertices</li>
               <li>{this.state.stats_frame_count} frames</li>
             </ul>
-            <CircularProgress />
+            <CircularProgress step={this.state.stats_frame_count} />
           </AnimateHeight>
         </div>
       </section>
@@ -154,4 +157,4 @@ class StellarViewer extends React.Component {
   }
 }
 
-export default StellarViewer;
+export default OrreryViewer;

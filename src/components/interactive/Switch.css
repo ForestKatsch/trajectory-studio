@@ -52,7 +52,6 @@
 }
 
 .Switch--checked .Switch__label {
-  font-weight: 700;
   color: var(--widget-active-text);
 }
 

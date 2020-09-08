@@ -16,7 +16,7 @@ import body_frag from './body.frag';
 import atmosphere_vert from './atmosphere.vert';
 import atmosphere_frag from './atmosphere.frag';
 
-export default class StellarRenderer extends Renderer {
+export default class OrreryRenderer extends Renderer {
 
   init() {
     this.options.desynchronized = true;
@@ -104,7 +104,7 @@ export default class StellarRenderer extends Renderer {
 
     this.earth = earth;
     
-    let steps = 32;
+    let steps = 0;
     for(let i=0; i<steps; i++) {
       let mesh = new Spatial(this.scene, `mesh-${i}`);
       mesh.setData(new MeshData('quadsphere', new Material(this.scene, 'body')));
@@ -273,22 +273,11 @@ export default class StellarRenderer extends Renderer {
 
     this.atmosphere.setEnabled(this.options.display_atmospheres);
     
-    //this.camera.flagDirty();
-    //vec3.set(this.body.position, Math.sin(now / 32.30) * 0.5, Math.sin(now / 66.30) * 0.5, 0);
-    //vec3.set(this.camera.position, 0, 0, Math.sin(now / 15) * 3 + 5);
-    
-    //this.scene.setUniform('uStarPosition', this.mesh.position);
-    
-    this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
-    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(100, 40, 100));
-    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(0, 50, -100));
-    
-    //quat.fromEuler(this.earth.rotation, Math.sin(now / 7) * 30, 0, Math.sin(now / 7) * 30);
+    //this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
+    this.scene.setUniform('uStarPosition', vec3.fromValues(0, 30, 30));
     quat.fromEuler(this.earth.rotation, 30, now * 0.5, 0);
-    //quat.fromEuler(this.spinny.rotation, 0, 220, 0);
-    //this.material.set('uColor', [Math.sin(Date.now() / 50), 0, 0]);
 
-    this.scene.setEnabled(!this.options.paused);
+    this.paused = this.options.paused;
 
     if(super.render()) {
       this.viewer.setState(state => ({
