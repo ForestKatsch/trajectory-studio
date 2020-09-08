@@ -3,6 +3,7 @@ import {vec3, quat, mat4} from 'gl-matrix';
 
 import Logger from 'js-logger';
 import {Uniforms} from './shader.js';
+import {RENDER_ORDER} from './scene.js';
 
 // # `SpatialData`
 //
@@ -11,6 +12,9 @@ export class SpatialData {
 
   constructor() {
     this.scene = null;
+
+    // Specifies the order to draw this in.
+    this.order = RENDER_ORDER.AUTO;
   }
 
   flagDirty() {
@@ -53,7 +57,7 @@ export class MeshData extends SpatialData {
       material = spatial.scene.fallback_material;
     }
     
-    let mesh = renderer.meshes[this.mesh_name];
+    let mesh = renderer.getMesh(this.mesh_name);
     let shader = renderer.getShader(this.material.shader_name);
 
     if(!mesh) {

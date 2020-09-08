@@ -3,6 +3,12 @@
   background-color: var(--html-bg);
 }
 
+.StellarViewer canvas {
+  min-width: 100%;
+  min-height: 100%;
+  object-fit: cover;
+}
+  
 .StellarViewer__options {
   background-color: var(--page-bg);
   color: var(--page-text-primary);

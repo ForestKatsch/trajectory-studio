@@ -24,7 +24,10 @@ export default class Renderer extends Asset {
     
     this.canvas = canvas;
 
-    this.options = options ? options : {};
+    this.options = {
+      ...(options ? options : {})
+    };
+    
     this.context = null;
 
     // The size of the canvas.
@@ -54,6 +57,9 @@ export default class Renderer extends Asset {
       current_frame: 0,
     };
 
+    // A key-value object containing the normalized extension name.
+    this.extensions = {};
+
     // Contains all the shaders we can use, keyed by their name.
     // A shader is not valid just because it is in this list; make sure
     // to check `shader.isReady()` first.
@@ -75,6 +81,7 @@ export default class Renderer extends Asset {
     this.pause_rendering = false;
 
     this.handleLoaderStateChange = this.handleLoaderStateChange.bind(this);
+    this.handleLoaderChildStateChange = this.handleLoaderChildStateChange.bind(this);
   }
 
   init() {
@@ -82,10 +89,30 @@ export default class Renderer extends Asset {
     
     this.setState(STATE.LOADING);
 
+    const VALID_WEBGL_OPTIONS = [
+      'alpha',
+      'desynchronized',
+      'antialias',
+      'depth',
+      'failIfMajorPerformanceCaveat',
+      'powerPreference',
+      'premultipliedAlpha',
+      'preserveDrawingBuffer',
+      'stencil'
+    ];
+    
+    let webgl_options = {};
+
+    for(let option_key of Object.keys(this.options)) {
+      if(option_key in VALID_WEBGL_OPTIONS) {
+        webgl_options[option_key] = this.options[option_key];
+      }
+    }
+
     try {
       this.context = this.canvas.getContext('webgl', {
         alpha: false,
-        ...this.options
+        ...webgl_options
       });
     } catch(e) {
       Logger.error("An error was thrown while creating WebGL 1 context!", e);
@@ -104,6 +131,8 @@ export default class Renderer extends Asset {
       this.initDebounce();
     }, false);
 
+    this.initExtensions();
+
     this.initShaders();
     this.initMeshes();
     this.initTextures();
@@ -113,6 +142,7 @@ export default class Renderer extends Asset {
     this.create();
 
     this.textures.on('statechange', this.handleLoaderStateChange);
+    this.textures.on('childstatechange', this.handleLoaderChildStateChange);
     this.handleLoaderStateChange();
 
     // And kick off the first frame.
@@ -125,8 +155,63 @@ export default class Renderer extends Asset {
     ]));
   }
 
+  handleLoaderChildStateChange() {
+    this.flagDirty();
+  }
+
   create() {
     // Anybody inheriting `Renderer` should do all of their initialization here.
+  }
+
+  // Set an option on this renderer.
+  setOption(name, value) {
+    if(this.options[name] === value) {
+      return;
+    }
+    
+    this.options[name] = value;
+
+    this.flagDirty();
+
+    this.applyTextureParameters();
+  }
+
+  applyTextureParameters() {
+    for(let texture of Object.values(this.textures.getAllAssets())) {
+      texture.applyParameters();
+    }
+  }
+
+  initExtensions() {
+    const gl = this.context;
+    
+    let aniso_ext = this.getExtension('EXT_texture_filter_anisotropic', 'MOZ_EXT_texture_filter_anisotropic', 'WEBKIT_EXT_texture_filter_anisotropic');
+
+    if(aniso_ext) {
+      aniso_ext.max = gl.getParameter(aniso_ext.ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+    }
+  }
+
+  getExtension(name) {
+    if(!(name in this.extensions)) {
+      const gl = this.context;
+
+      this.extensions[name] = null;
+      
+      for(let i=0; i<arguments.length; i++) {
+        let extension = gl.getExtension(arguments[i]);
+
+        if(extension !== null) {
+          this.extensions[name] = {
+            ext: extension
+          };
+          
+          break;
+        }
+      }
+    }
+    
+    return this.extensions[name];
   }
 
   // Initialize default shaders.
@@ -219,6 +304,8 @@ export default class Renderer extends Asset {
       return this.shaders[name];
     }
 
+    Logger.warn(`No such shader '${name}'`);
+
     return this.shaders['@fallback'];
   }
 
@@ -235,6 +322,16 @@ export default class Renderer extends Asset {
     this.meshes[name] = mesh;
 
     return mesh;
+  }
+
+  getMesh(name) {
+    if(name in this.meshes && this.meshes[name].isReady()) {
+      return this.meshes[name];
+    }
+
+    Logger.warn(`No such mesh '${name}'`);
+
+    return this.meshes['@triangle'];
   }
 
   createTexture(name) {
@@ -254,8 +351,14 @@ export default class Renderer extends Asset {
   }
   
   getTexture(name) {
-    if(this.textures.hasAsset(name) && this.textures.getAsset(name).isReady()) {
-      return this.textures.getAsset(name);
+    if(this.textures.hasAsset(name)) {
+      if(this.textures.getAsset(name).isReady()) {
+        return this.textures.getAsset(name);
+      }
+      
+      //Logger.debug(`Texture '${name}' is not ready yet, returning fallback...`);
+    } else {
+      Logger.warn(`No such texture '${name}'`);
     }
 
     return this.textures.getAsset('@fallback');
@@ -340,6 +443,12 @@ export default class Renderer extends Asset {
       this.performance.frame_start = end;
       
       this.performance.current_frame += 1;
+
+      /*
+      if(this.performance.current_frame >= 42) {
+        this.pause_rendering = true;
+      }
+      */
 
       return true;
     } catch(e) {

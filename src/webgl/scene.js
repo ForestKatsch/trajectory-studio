@@ -5,6 +5,12 @@ import Spatial from './spatial.js';
 import Material from './material.js';
 import {Uniforms} from './shader.js';
 
+export const RENDER_ORDER = {
+  AUTO: 0,
+  OPAQUE: 1000,
+  TRANSPARENT: 3000
+};
+
 // # `Scene`
 export default class Scene {
 

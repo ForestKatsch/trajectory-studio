@@ -16,6 +16,7 @@ class StellarViewer extends React.Component {
     super(props);
     
     this.state = {
+      use_anisotropy: false,
       display_stats: true,
       display_atmospheres: true,
       login: '',
@@ -87,6 +88,7 @@ class StellarViewer extends React.Component {
 
     if(this.renderer) {
       this.renderer.setOption('display_atmospheres', this.state.display_atmospheres);
+      this.renderer.setOption('max_anisotropy_level', this.state.use_anisotropy ? 16 : 0);
     }
     
     return (
@@ -96,6 +98,11 @@ class StellarViewer extends React.Component {
         <div className="StellarViewer__options">
           <Switch label="Orbit Lines"></Switch>
           <Switch label="Spacecraft Trajectories"></Switch>
+          <Switch
+            label="Use Anisotropy"
+            checked={this.state.use_anisotropy}
+            onChange={this.createSwitchHandler('use_anisotropy')}
+          />
           <Switch
             label="Planet Atmospheres"
             checked={this.state.display_atmospheres}
@@ -110,6 +117,7 @@ class StellarViewer extends React.Component {
             <li>{this.state.stats_fps.toFixed(1)} fps</li>
             <li>{this.state.stats_draw_call_count} draw calls</li>
             <li>{this.state.stats_vertex_count} vertices</li>
+            <li>{this.state.stats_frame_count} frames</li>
           </ul>
         </div>
       </section>

@@ -107,7 +107,19 @@ export default class Loader extends Asset {
     return this.getAsset(name) !== null;
   }
 
+  // Returns the internal key-value list of all assets.
+  getAllAssets() {
+    return this.assets;
+  }
+
   handleAssetStateChange(event) {
+    this.emit('childstatechange', {
+      previous: event.previous,
+      state: event.state,
+      asset: event.asset,
+      loader: this
+    });
+    
     this.updateState();
   }
 

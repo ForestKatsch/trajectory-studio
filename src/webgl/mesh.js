@@ -155,6 +155,8 @@ export default class Mesh {
     // Buffers are keyed by their attribute name.
     this.buffers = {};
 
+    this.ready = false;
+
     this.vertex_count = 0;
   }
 
@@ -237,10 +239,16 @@ export default class Mesh {
     }
   }
 
+  isReady() {
+    return this.ready;
+  }
+  
   apply() {
     for(let buffer_name of Object.keys(this.buffers)) {
       this.buffers[buffer_name].apply();
     }
+    
+    this.ready = true;
   }
 
   draw(shader) {

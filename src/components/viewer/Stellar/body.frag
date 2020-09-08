@@ -6,6 +6,7 @@ uniform vec3 uNightColor;
 uniform vec3 uStarPosition;
 
 uniform sampler2D uTexture;
+uniform sampler2D uLandinfo;
 
 uniform mat4 uViewMatrix_i;
 
@@ -38,18 +39,20 @@ void main() {
                           (atan(vPosition.x, vPosition.z)) / PI_2 + 0.5,
                           atan(len, vPosition.y) / PI);
 
-  vec3 landinfo = texture2D(uTexture, coordinates, -5.0).rgb;
+  vec3 t_landinfo = texture2D(uLandinfo, coordinates).rgb;
+  vec3 t_color = texture2D(uTexture, coordinates).rgb;
 
-  vec3 color = mix(uOceanColor, uLandColor, landinfo.r);
+  vec3 land_color = mix(vec3(0.0), uLandColor, pow(t_landinfo.b, 0.5) * 0.5 + 0.5);
 
+  vec3 color = mix(uOceanColor, t_color, t_landinfo.r);
 
   vec3 diffuse = color * star_brightness;
 
   vec3 reflection_direction = reflect(star_direction, vWorldNormal);
 
-  vec3 specular = color * pow(clamp(dot(reflection_direction, view_direction), 0.0, 1.0), 5.0) * (1.0 - landinfo.r);
+  vec3 specular = vec3(0.5) * pow(clamp(dot(reflection_direction, view_direction), 0.0, 1.0), 2.0) * (1.0 - t_landinfo.r);
 
-  vec3 night = uNightColor * landinfo.g * clamp(pow(-star_exposure, 0.5), 0.0, 1.0);
+  vec3 night = uNightColor * t_landinfo.g * clamp(pow(-star_exposure, 0.5), 0.0, 1.0);
   
   gl_FragColor = vec4(diffuse + specular + night, 1.0);
 }

@@ -4,6 +4,7 @@ import {vec3, vec4, quat} from 'gl-matrix';
 import Renderer from '../../../webgl/renderer.js';
 import Scene from '../../../webgl/scene.js';
 import Material from '../../../webgl/material.js';
+import {WRAP} from '../../../webgl/texture.js';
 import {BLEND, DEPTH} from '../../../webgl/shader.js';
 import Spatial, {MeshData, CameraData} from '../../../webgl/spatial.js';
 
@@ -23,8 +24,18 @@ export default class StellarRenderer extends Renderer {
 
     this.scene = new Scene();
 
-    this.earth_texture = this.createTexture('stellar-body-earth');
-    this.earth_texture.load('static/stellar/bodies/earth/earth.jpg');
+    this.createTexture('stellar-body-earth-landinfo')
+      .load('static/stellar/bodies/earth/earth.jpg')
+      .setParameters({
+        wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
+        anisotropy_level: 16
+      });
+    this.createTexture('stellar-body-earth-color')
+      .load('static/stellar/bodies/earth/color.jpg')
+      .setParameters({
+        wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
+        anisotropy_level: 16
+      });
 
     //this.createShader('default', default_vert, default_frag);
     this.createShader('body', default_vert, body_frag);
@@ -41,44 +52,49 @@ export default class StellarRenderer extends Renderer {
     this.createCamera();
 
     this.options = {
+      ...this.options,
+      max_anisotropy_level: 16,
       display_atmospheres: true
     };
   }
 
-  setOption(name, value) {
-    this.options[name] = value;
-
-    if(this.scene !== null) {
-      this.scene.flagDirty();
-    }
-  }
-
   createPlanet() {
-    let body = new Spatial(this.scene, 'body');
-    body.setData(new MeshData('quadsphere', new Material(this.scene, 'body')));
-    body.data.material.set('uColor', vec3.fromValues(0.5, 0.5, 0.5));
-    body.data.material.set('uLandColor', vec3.fromValues(0.5, 0.8, 0.6));
-    body.data.material.set('uOceanColor', vec3.fromValues(0.2, 0.4, 0.6));
-    body.data.material.set('uNightColor', vec3.fromValues(0.8, 0.55, 0.4));
-    body.data.material.set('uTexture', 'stellar-body-earth');
+    let earth_material = new Material(this.scene, 'body');
     
-    this.scene.root.add(body);
+    let earth = new Spatial(this.scene, 'earth');
+    earth.setData(new MeshData('quadsphere', earth_material));
+
+    earth_material.set('uLandColor', vec3.fromValues(0.5, 0.8, 0.6));
+    earth_material.set('uOceanColor', vec3.fromValues(0.02, 0.17, 0.3));
+    earth_material.set('uNightColor', vec3.fromValues(0.8, 0.55, 0.4));
+    
+    earth_material.set('uLandinfo', 'stellar-body-earth-landinfo');
+    earth_material.set('uTexture', 'stellar-body-earth-color');
+    
+    this.scene.root.add(earth);
     
     this.spinny = new Spatial(this.scene, 'spinny');
-    body.add(this.spinny);
+    earth.add(this.spinny);
 
     let atmosphere = new Spatial(this.scene, 'atmosphere');
     atmosphere.setData(new MeshData('atmosphere', new Material(this.scene, 'atmosphere')));
 
-    atmosphere.scale = vec3.fromValues(1.2, 1.2, 1.2);
-    atmosphere.data.material.set('uAtmosphereParameters', vec4.fromValues(1 / 1.2 / 2, 1 / 2, 30, 1000));
-    atmosphere.data.material.set('uAtmosphereRaleighScatter', vec4.fromValues(40, 80, 120, 50));
+    atmosphere.scale = vec3.fromValues(1.5, 1.5, 1.5);
+    atmosphere.data.material.set('uAtmosphereParameters', vec4.fromValues(1 / 1.5 / 2, 1 / 2, 70, 1000));
+
+    let atmosphere_scatter_color = vec4.fromValues(10, 20, 40);
+    vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 1 / 4);
+    //vec4.pow(atmosphere_scatter_color, atmosphere_scatter_color, 4.0);
+    vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 4.0);
+    atmosphere_scatter_color[3] = 50;
+    
+    atmosphere.data.material.set('uAtmosphereRaleighScatter', atmosphere_scatter_color);
 
     this.atmosphere = atmosphere;
 
-    body.add(atmosphere);
+    earth.add(atmosphere);
 
-    this.body = body;
+    this.earth = earth;
     
     let steps = 1;
     for(let i=0; i<steps; i++) {
@@ -248,6 +264,7 @@ export default class StellarRenderer extends Renderer {
     let now = Date.now() / 100;
 
     this.atmosphere.setEnabled(this.options.display_atmospheres);
+    //this.(this.options.display_atmospheres);
     
     //this.camera.flagDirty();
     //vec3.set(this.body.position, Math.sin(now / 32.30) * 0.5, Math.sin(now / 66.30) * 0.5, 0);
@@ -256,20 +273,21 @@ export default class StellarRenderer extends Renderer {
     //this.scene.setUniform('uStarPosition', this.mesh.position);
     
     //this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 0, Math.cos(now / 10.0) *100));
-    this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
-    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(100, 40, 100));
+    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
+    this.scene.uniforms.set('uStarPosition', vec3.fromValues(100, 40, 100));
     //this.scene.uniforms.set('uStarPosition', vec3.fromValues(0, 50, -100));
     
-    //quat.fromEuler(this.body.rotation, Math.sin(now / 30.30) * 50, 0, Math.sin(now / 10) * 50);
-    quat.fromEuler(this.body.rotation, 0, now * 3, 0);
-    quat.fromEuler(this.spinny.rotation, 0, 220, 0);
+    //quat.fromEuler(this.earth.rotation, Math.sin(now / 7) * 30, 0, Math.sin(now / 7) * 30);
+    quat.fromEuler(this.earth.rotation, 0, now * 3, 0);
+    //quat.fromEuler(this.spinny.rotation, 0, 220, 0);
     //this.material.set('uColor', [Math.sin(Date.now() / 50), 0, 0]);
-    
+
     if(super.render()) {
       this.viewer.setState(state => ({
         stats_fps: this.performance.fps,
         stats_vertex_count: this.performance.vertex_count,
         stats_draw_call_count: this.performance.draw_call_count,
+        stats_frame_count: this.performance.current_frame,
       }));
     }
     

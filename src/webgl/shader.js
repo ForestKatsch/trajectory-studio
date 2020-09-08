@@ -2,37 +2,73 @@
 import Logger from 'js-logger';
 
 export const TYPE = {
+  AUTO: 'AUTO',
+  
+  BOOL: 'BOOL',
+  
+  BYTE: 'BYTE',
+  UNSIGNED_BYTE: 'UNSIGNED_BYTE',
+  
+  SHORT: 'SHORT',
+  UNSIGNED_SHORT: 'UNSIGNED_SHORT',
+  
+  INT: 'INT',
+  UNSIGNED_INT: 'UNSIGNED_INT',
+  
+  FLOAT: 'FLOAT',
+  
   FVEC2: 'FVEC2',
   FVEC3: 'FVEC3',
   FVEC4: 'FVEC4',
+  
   IVEC2: 'IVEC2',
   IVEC3: 'IVEC3',
   IVEC4: 'IVEC4',
-  BOOL: 'BOOL',
+  
   BVEC2: 'BVEC2',
   BVEC3: 'BVEC3',
   BVEC4: 'BVEC4',
+  
   MAT2: 'MAT2',
   MAT3: 'MAT3',
   MAT4: 'MAT4',
+
+  TEXTURE: 'TEXTURE',
   TEXTURE_2D: 'TEXTURE_2D',
   TEXTURE_CUBEMAP: 'TEXTURE_CUBEMAP',
 };
 
 export const GL_TYPE = {
+  BOOL: 0x8B56,
+  
+  BYTE: 0x1400,
+  UNSIGNED_BYTE: 0x1401,
+  
+  SHORT: 0x1402,
+  UNSIGNED_SHORT: 0x1403,
+  
+  INT: 0x1404,
+  UNSIGNED_INT: 0x1405,
+  
+  FLOAT: 0x1406,
+  
   FVEC2: 0x8B50,
   FVEC3: 0x8B51,
   FVEC4: 0X8B52,
+  
   IVEC2: 0X8B53,
   IVEC3: 0X8B54,
   IVEC4: 0X8B55,
-  BOOL: 0X8B56,
+  
   BVEC2: 0X8B57,
   BVEC3: 0X8B58,
   BVEC4: 0X8B59,
+  
   MAT2: 0X8B5A,
   MAT3: 0X8B5B,
   MAT4: 0X8B5C,
+  
+  TEXTURE: 0x1702,
   TEXTURE_2D: 0X8B5E,
   TEXTURE_CUBEMAP: 0X8B60
 };
@@ -40,21 +76,38 @@ export const GL_TYPE = {
 /* eslint-disable no-useless-computed-key */
 
 export const FROM_GL_TYPE = {
+  [0x8B56]: TYPE.BOOL,
+  
+  [0x1400]: TYPE.BYTE,
+  [0x1401]: TYPE.UNSIGNED_BYTE,
+  
+  [0x1402]: TYPE.SHORT,
+  [0x1403]: TYPE.UNSIGNED_SHORT,
+  
+  [0x1404]: TYPE.INT,
+  [0x1405]: TYPE.UNSIGNED_INT,
+  
+  [0x1406]: TYPE.FLOAT,
+  
   [0x8B50]: TYPE.FVEC2,
   [0x8B51]: TYPE.FVEC3,
   [0X8B52]: TYPE.FVEC4,
+  
   [0X8B53]: TYPE.IVEC2,
   [0X8B54]: TYPE.IVEC3,
   [0X8B55]: TYPE.IVEC4,
-  [0X8B56]: TYPE.BOOL,
+  
   [0X8B57]: TYPE.BVEC2,
   [0X8B58]: TYPE.BVEC3,
   [0X8B59]: TYPE.BVEC4,
+  
   [0X8B5A]: TYPE.MAT2,
   [0X8B5B]: TYPE.MAT3,
   [0X8B5C]: TYPE.MAT4,
+  
+  [0x1702]: TYPE.TEXTURE,
   [0X8B5E]: TYPE.TEXTURE_2D,
-  [0X8B6]: TYPE.TEXTURE_CUBEMAP0
+  [0X8B60]: TYPE.TEXTURE_CUBEMAP
 };
 
 export class Uniforms {
@@ -70,6 +123,13 @@ export class Uniforms {
       if(this.uniforms[name] === value) {
         return;
       }
+
+      if(typeof this.uniforms[name] === typeof []) {
+        if((this.uniforms[name].length === value.length) && 
+           (this.uniforms[name].every((a, i) => { return a === value[i] }))) {
+          return;
+        }
+      }
     }
 
     if(typeof value === typeof []) {
@@ -77,6 +137,8 @@ export class Uniforms {
     } else {
       this.uniforms[name] = value;
     }
+
+    //Logger.trace(`Uniform '${name}' is making this frame dirty`);
     
     this.dirty_function();
   }
@@ -285,30 +347,30 @@ export default class Shader {
   // Given a name (for logging), a value, and an (optional) type,
   // returns the type (if given), the autodetected type (which isn't guaranteed to be correct!), or null.
   detectUniformType(name, value, type) {
-    if(type !== undefined && type !== 'auto') {
+    if(type !== undefined && type !== TYPE.AUTO) {
       return type;
     }
 
     if(typeof value === typeof 0) {
       if(value % 1 === value) {
-        type = 'int';
+        type = TYPE.INT;
       } else {
-        type = 'float';
+        type = TYPE.FLOAT;
       }
       // A texture.
     } else if(typeof value === typeof '') {
-      type = 'texture';
+      type = TYPE.TEXTURE;
     } else if(typeof value === typeof []) {
       if(value.length === 2) {
-        type = 'fvec2';
+        type = TYPE.FVEC2;
       } else if(value.length === 3) {
-        type = 'fvec3';
+        type = TYPE.FVEC3;
       } else if(value.length === 4) {
-        type = 'fvec4';
+        type = TYPE.FVEC4;
       } else if(value.length === 9) {
-        type = 'mat3';
+        type = TYPE.MAT3;
       } else if(value.length === 16) {
-        type = 'mat4';
+        type = TYPE.MAT4;
       } else {
         Logger.warn(`Cannot auto-detect type of uniform '${name}' (on shader '${this.name}') array with ${value.length} elements, ignoring`, value);
         return;
@@ -334,17 +396,17 @@ export default class Shader {
     if(false) {
       let value_string = '?';
 
-      if(type.startsWith('fvec') || type.startsWith('ivec') || type.startsWith('vec')) {
+      if(type.startsWith('FVEC') || type.startsWith('IVEC') || type.startsWith('VEC')) {
         value_string = `(${value})`;
-      } else if(type.startsWith('mat')) {
+      } else if(type.startsWith('MAT')) {
         // TODO: split this out into separate functions.
-        if(type === 'mat3') {
+        if(type === 'MAT3') {
           value_string = `
 ${value[0]}, ${value[3]}, ${value[6]},
 ${value[1]}, ${value[4]}, ${value[7]},
 ${value[2]}, ${value[5]}, ${value[8]},
 `;
-        } else if(type === 'mat4') {
+        } else if(type === 'MAT4') {
           value_string = `
 ${value[0]}, ${value[4]}, ${value[8]}, ${value[12]},
 ${value[1]}, ${value[5]}, ${value[9]}, ${value[13]},
@@ -353,35 +415,32 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
         }
       }
       
-      Logger.debug(`Setting uniform '${name}' to:`, value_string);
+      Logger.debug(`Setting uniform '${name}' of type '${type}' (${this.uniforms[name].type}) to`, value_string);
     }
 
     switch(type) {
-    case 'int':
+    case TYPE.INT:
       gl.uniform1i(location, value);
       break;
-    case 'float':
+    case TYPE.FLOAT:
       gl.uniform1f(location, value);
       break;
-    case 'vec2':
-    case 'fvec2':
+    case TYPE.FVEC2:
       gl.uniform2fv(location, value);
       break;
-    case 'vec3':
-    case 'fvec3':
+    case TYPE.FVEC3:
       gl.uniform3fv(location, value);
       break;
-    case 'vec4':
-    case 'fvec4':
+    case TYPE.FVEC4:
       gl.uniform4fv(location, value);
       break;
-    case 'mat3':
+    case TYPE.MAT3:
       gl.uniformMatrix3fv(location, false, value);
       break;
-    case 'mat4':
+    case TYPE.MAT4:
       gl.uniformMatrix4fv(location, false, value);
       break;
-    case 'texture':
+    case TYPE.TEXTURE:
       Logger.warn(`Cannot set texture uniform '${name}' in 'setUniform'. (See 'setTextureUniform.)`, value);
       break;
     default:
@@ -415,7 +474,7 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
       }
 
       let value = uniforms[name];
-      let type = 'auto';
+      let type = TYPE.AUTO;
 
       if(typeof uniforms[name] === typeof [] && typeof uniforms[name][0] === typeof '') {
         type = uniforms[name][0];
@@ -424,7 +483,7 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
 
       type = this.detectUniformType(name, value, type);
 
-      if(type === 'texture') {
+      if(type.startsWith(TYPE.TEXTURE)) {
         textures[name] = {
           uniform_name: name,
           texture_name: value
@@ -440,6 +499,8 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
 
   // Sets every texture required from the uniforms here. Note that the format
   // for `uniforms` is not the same as above.
+  //
+  // TODO: optimize this.
   setTextureUniforms(uniforms) {
     let texture_index = {
       [TYPE.TEXTURE_2D]: 0,
