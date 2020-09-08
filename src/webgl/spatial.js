@@ -66,7 +66,7 @@ export class MeshData extends SpatialData {
         return 0;
       }
       
-      return value << start;
+      return Math.floor(value) << (start - width);
     };
 
     // The render sort order is 32 bits, and is partitioned as follows:
@@ -74,7 +74,7 @@ export class MeshData extends SpatialData {
     // ```
     // |-------|-------|-------|-------
     // 12345678901234567890123456789012
-    // | order |  mat  |     depth
+    //  | order |  mat  |     depth
     // ```
     //
     // If the material is marked as a non-opaque blend mode, the order is instead:
@@ -82,18 +82,24 @@ export class MeshData extends SpatialData {
     // ```
     // |-------|-------|-------|-------
     // 12345678901234567890123456789012
-    // | order | depth         |  mat
+    //  | order | depth        |  mat
     // ```
 
     let material = this.getMaterial(spatial);
     let camera = spatial.scene.camera.getData(CameraData);
 
-    let depth = Math.pow(Math.min(Math.max((-spatial.modelview_matrix[4 * 3 + 2] - camera.near) / (camera.far - camera.near), 0), 1), 0.2) * 16;
+    let depth = Math.pow(Math.min(Math.max((-spatial.modelview_matrix[4 * 3 + 2] - camera.near) / (camera.far - camera.near), 0), 1), 0.2) * Math.pow(2, 15);
 
-    sort |= shift(32, 8, this.order);
-    sort |= shift(24, 8, material.index);
-    sort |= shift(16, 16, depth);
-    
+    sort |= shift(31, 8, this.order);
+
+    if(spatial.order >= RENDER_ORDER.TRANSPARENT) {
+      sort |= shift(24, 15, depth);
+      sort |= shift(8, 8, material.index);
+    } else {
+      sort |= shift(24, 8, material.index);
+      sort |= shift(16, 15, depth);
+    }
+
     return sort;
   }
 

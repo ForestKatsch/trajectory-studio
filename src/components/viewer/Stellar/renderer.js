@@ -2,7 +2,7 @@
 import {vec3, vec4, quat} from 'gl-matrix';
 
 import Renderer from '../../../webgl/renderer.js';
-import Scene from '../../../webgl/scene.js';
+import Scene, {RENDER_ORDER} from '../../../webgl/scene.js';
 import Material, {BLEND, DEPTH} from '../../../webgl/material.js';
 import {WRAP} from '../../../webgl/texture.js';
 import Spatial, {MeshData, CameraData} from '../../../webgl/spatial.js';
@@ -67,7 +67,6 @@ export default class StellarRenderer extends Renderer {
     let earth = new Spatial(this.scene, 'earth');
     earth.setData(new MeshData('quadsphere', earth_material));
 
-    earth_material.set('uLandColor', vec3.fromValues(0.5, 0.8, 0.6));
     earth_material.set('uOceanColor', vec3.fromValues(0.02, 0.17, 0.3));
     earth_material.set('uNightColor', vec3.fromValues(0.8, 0.55, 0.4));
     
@@ -84,16 +83,18 @@ export default class StellarRenderer extends Renderer {
     atmosphere_material.depth_mode = DEPTH.READ_ONLY;
     
     let atmosphere = new Spatial(this.scene, 'atmosphere');
-    atmosphere.setData(new MeshData('atmosphere', atmosphere_material));
+    let atmosphere_mesh = new MeshData('atmosphere', atmosphere_material)
+    atmosphere.setData(atmosphere_mesh);
+    atmosphere_mesh.order = RENDER_ORDER.TRANSPARENT;
     
     atmosphere.scale = vec3.fromValues(1.1, 1.1, 1.1);
-    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / 1.1 / 2, 1 / 2, 30, 1000));
+    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / 1.1 / 2, 1 / 2, 3, 200));
 
     let atmosphere_scatter_color = vec4.fromValues(10, 20, 40);
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 1 / 4);
     //vec4.pow(atmosphere_scatter_color, atmosphere_scatter_color, 4.0);
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 4.0);
-    atmosphere_scatter_color[3] = 50;
+    atmosphere_scatter_color[3] = 60;
     
     atmosphere.setUniform('uAtmosphereRaleighScatter', atmosphere_scatter_color);
 

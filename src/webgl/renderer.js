@@ -512,11 +512,9 @@ export default class Renderer extends Asset {
       
       this.performance.current_frame += 1;
 
-      /*
       if(this.performance.current_frame >= 42) {
         this.pause_rendering = true;
       }
-      */
 
       return true;
     } catch(e) {

@@ -16,7 +16,7 @@ class StellarViewer extends React.Component {
     super(props);
     
     this.state = {
-      use_anisotropy: false,
+      use_anisotropy: true,
       display_stats: true,
       display_atmospheres: true,
       login: '',

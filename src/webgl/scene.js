@@ -8,8 +8,8 @@ import {Uniforms} from './shader.js';
 // Render order must always be below 255.
 export const RENDER_ORDER = {
   AUTO: 0,
-  OPAQUE: 80,
-  TRANSPARENT: 120
+  OPAQUE: 64,
+  TRANSPARENT: 128
 };
 
 // # `Scene`
@@ -48,7 +48,13 @@ export default class Scene {
   }
 
   batch(renderer) {
-    return this.root.getRenderables(renderer);
+    let renderables = this.root.getRenderables(renderer);
+    
+    renderables.sort((a, b) => {
+      return a.render_sort - b.render_sort;
+    });
+    
+    return renderables;
   }
 
   // TODO: fix naive ordering, add batching.
@@ -65,7 +71,7 @@ export default class Scene {
     let renderables = this.batch(renderer);
 
     //Logger.debug(`Scene is batched and sorted; drawing ${renderables.length} meshes...`);
-
+    
     for(let renderable of renderables) {
       renderable.draw(renderer);
     }
