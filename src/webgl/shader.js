@@ -227,6 +227,9 @@ export default class Shader {
         } else {
           type = 'float';
         }
+        // A texture.
+      } else if(typeof value === typeof '') {
+        type = 'texture';
       } else if(typeof value === typeof []) {
         if(value.length === 2) {
           type = 'fvec2';
@@ -298,6 +301,12 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
       break;
     case 'mat4':
       gl.uniformMatrix4fv(location, false, value);
+      break;
+    case 'texture':
+      let texture = this.renderer.getTexture(value);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, texture.texture);
+      gl.uniform1i(location, 0);
       break;
     default:
       Logger.warn(`Cannot set uniform '${name}' with unknown type '${type}' ignoring`, value);

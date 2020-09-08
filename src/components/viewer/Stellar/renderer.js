@@ -23,6 +23,9 @@ export default class StellarRenderer extends Renderer {
 
     this.scene = new Scene();
 
+    this.earth_texture = this.createTexture('stellar-body-earth');
+    this.earth_texture.load('static/stellar/bodies/earth/earth.jpg');
+
     //this.createShader('default', default_vert, default_frag);
     this.createShader('body', default_vert, body_frag);
     this.createShader('star', default_vert, star_frag);
@@ -54,6 +57,10 @@ export default class StellarRenderer extends Renderer {
     let body = new Spatial(this.scene, 'body');
     body.setData(new MeshData('quadsphere', new Material(this.scene, 'body')));
     body.data.material.set('uColor', vec3.fromValues(0.5, 0.5, 0.5));
+    body.data.material.set('uLandColor', vec3.fromValues(0.5, 0.8, 0.6));
+    body.data.material.set('uOceanColor', vec3.fromValues(0.2, 0.4, 0.6));
+    body.data.material.set('uNightColor', vec3.fromValues(0.8, 0.45, 0.3));
+    body.data.material.set('uTexture', 'stellar-body-earth');
     
     this.scene.root.add(body);
     
@@ -249,11 +256,12 @@ export default class StellarRenderer extends Renderer {
     //this.scene.setUniform('uStarPosition', this.mesh.position);
     
     //this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 0, Math.cos(now / 10.0) *100));
-    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
-    this.scene.uniforms.set('uStarPosition', vec3.fromValues(100, 40, 100));
-    this.scene.uniforms.set('uStarPosition', vec3.fromValues(0, 50, -100));
+    this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
+    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(100, 40, 100));
+    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(0, 50, -100));
     
     //quat.fromEuler(this.body.rotation, Math.sin(now / 30.30) * 50, 0, Math.sin(now / 10) * 50);
+    quat.fromEuler(this.body.rotation, 0, now, 0);
     quat.fromEuler(this.spinny.rotation, 0, 220, 0);
     //this.material.set('uColor', [Math.sin(Date.now() / 50), 0, 0]);
     

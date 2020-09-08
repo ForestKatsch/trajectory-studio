@@ -13,13 +13,13 @@
   --container-radius: 8px;
   --widget-radius: 4px;
 
-  --widget-inactive-text: hsl(220, 20%, 20%);
+  --widget-inactive-text: hsl(220, 20%, 10%);
   --widget-active-text: hsl(220, 20%, 0%);
 
   --widget-highlight: hsl(220, 0%, 100%);
   
   --widget-inactive: hsl(220, 10%, 50%);
-  --widget-active: hsl(220, 0%, 0%);
+  --widget-active: hsl(220, 0%, 15%);
   
   --widget-inactive-highlight: var(--widget-inset);
   --widget-active-highlight: hsl(220, 0%, 100%);

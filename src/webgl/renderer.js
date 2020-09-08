@@ -7,6 +7,7 @@ import {vec2} from 'gl-matrix';
 
 import Shader from './shader.js';
 import Mesh from './mesh.js';
+import Texture from './texture.js';
 
 import fallback_vert from './fallback.vert';
 import fallback_frag from './fallback.frag';
@@ -55,6 +56,9 @@ export default class Renderer {
     // Contains all the meshes.
     this.meshes = {};
 
+    // Contains all the textures.
+    this.textures = {};
+
     // The scene to render.
     this.scene = null;
 
@@ -92,6 +96,7 @@ export default class Renderer {
 
     this.initShaders();
     this.initMeshes();
+    this.initTextures();
 
     this.initCanvas();
 
@@ -102,6 +107,7 @@ export default class Renderer {
   }
 
   create() {
+    // Anybody inheriting `Renderer` should do all of their initialization here.
   }
 
   // Initialize default shaders.
@@ -134,6 +140,10 @@ export default class Renderer {
       [0, 1, 2],
       [2, 0, 3]
     ]);
+  }
+
+  initTextures() {
+    this.createTexture('@fallback');
   }
 
   initCanvas() {
@@ -206,7 +216,32 @@ export default class Renderer {
 
     return mesh;
   }
+
+  createTexture(name) {
+    if(name in this.textures) {
+      Logger.warn(`Duplicate texture '${name}' is being requested; deleting existing texture.`);
+      this.textures[name].deinit();
+    }
+    
+    Logger.debug(`Creating texture '${name}'...`);
+    
+    let texture = new Texture(this, name);
+
+    texture.init();
+
+    this.textures[name] = texture;
+
+    return texture;
+  }
   
+  getTexture(name) {
+    if(name in this.textures && this.textures[name].isReady()) {
+      return this.textures[name];
+    }
+
+    return this.textures['@fallback'];
+  }
+
   // Automatically copies the size from the parent element of the canvas.
   resizeImmediate() {
     this.size = vec2.fromValues(this.canvas.parentElement.clientWidth, this.canvas.parentElement.clientHeight);

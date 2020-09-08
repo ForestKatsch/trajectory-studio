@@ -9,6 +9,7 @@ uniform mat4 uProjectionMatrix;
 varying vec3 vPosition;
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
+varying vec3 vViewNormal;
 
 void main() {
   vPosition = aPosition;
@@ -16,5 +17,7 @@ void main() {
   vWorldNormal = normalize((uWorldMatrix * vec4(aNormal, 0.0)).xyz);
   
   gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aPosition, 1.0);
+  
+  vViewNormal = normalize(uModelViewMatrix * vec4(aNormal, 1.0)).xyz;
   //vNormal = aNormal;
 }

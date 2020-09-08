@@ -25,6 +25,8 @@ const ModuleNotFoundPlugin = require('react-dev-utils/ModuleNotFoundPlugin');
 const ForkTsCheckerWebpackPlugin = require('react-dev-utils/ForkTsCheckerWebpackPlugin');
 const typescriptFormatter = require('react-dev-utils/typescriptFormatter');
 
+const CopyPlugin = require('copy-webpack-plugin');
+
 const postcssNormalize = require('postcss-normalize');
 
 const appPackageJson = require(paths.appPackageJson);
@@ -159,6 +161,7 @@ module.exports = function(webpackEnv) {
       // changing JS code would still trigger a refresh.
     ].filter(Boolean),
     output: {
+      publicPath: '/build/',
       // The build folder.
       path: isEnvProduction ? paths.appBuild : undefined,
       // Add /* filename */ comments to generated require()s in the output.
@@ -516,6 +519,17 @@ module.exports = function(webpackEnv) {
       ],
     },
     plugins: [
+      new CopyPlugin({
+        patterns: [
+          {
+            from: 'src/components/viewer/Stellar/bodies/**/*.jpg',
+            to: 'static/stellar/bodies/',
+            transformPath(target, absolute) {
+              return target.replace('src/components/viewer/Stellar/bodies/', '');
+            }
+          }
+        ],
+      }),
       // Generates an `index.html` file with the <script> injected.
       new HtmlWebpackPlugin(
         Object.assign(
