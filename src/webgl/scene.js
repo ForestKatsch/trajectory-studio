@@ -19,6 +19,8 @@ export default class Scene {
     this.root = new Spatial(this, '@root');
     this._dirty = true;
 
+    this.enabled = true;
+
     this.fallback_material = new Material(this, '@fallback');
 
     // The camera used to render this scene.
@@ -27,7 +29,21 @@ export default class Scene {
     this.uniforms = new Uniforms(this.flagDirty.bind(this));
   }
 
+  setEnabled(enabled) {
+    if(this.enabled === enabled) {
+      return;
+    }
+
+    this.enabled = enabled;
+
+    this.flagDirty();
+  }
+
   flagDirty() {
+    if(!this.enabled) {
+      return;
+    }
+    
     this._dirty = true;
   }
   
@@ -43,6 +59,10 @@ export default class Scene {
   }
 
   update(renderer) {
+    if(!this.enabled) {
+      return;
+    }
+    
     this.root.update(renderer);
     this.root.updatePost(renderer);
   }
@@ -59,10 +79,14 @@ export default class Scene {
 
   // TODO: fix naive ordering, add batching.
   draw(renderer) {
-    //Logger.debug(`Drawing scene...`);
-    
     this._dirty = false;
 
+    if(!this.enabled) {
+      return;
+    }
+    
+    //Logger.debug(`Drawing scene...`);
+    
     if(!this.camera) {
       Logger.warn('No camera set in scene, skipping render...');
       return;

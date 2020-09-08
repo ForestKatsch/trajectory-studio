@@ -1,11 +1,14 @@
 
 import React from 'react';
+import AnimateHeight from 'react-animate-height';
+
 import Logger from 'js-logger';
 
 import StellarRenderer from './renderer.js';
 import EmptyState from '../../display/Empty.jsx';
 
 import Switch from '../../interactive/Switch.jsx';
+import CircularProgress from '../../progress/Circular.jsx';
 
 import './style.css';
 
@@ -16,6 +19,8 @@ class StellarViewer extends React.Component {
     super(props);
     
     this.state = {
+      paused: false,
+      
       use_anisotropy: true,
       display_stats: true,
       display_atmospheres: true,
@@ -89,6 +94,7 @@ class StellarViewer extends React.Component {
     if(this.renderer) {
       this.renderer.setOption('display_atmospheres', this.state.display_atmospheres);
       this.renderer.setOption('max_anisotropy_level', this.state.use_anisotropy ? 16 : 0);
+      this.renderer.setOption('paused', this.state.paused);
     }
     
     return (
@@ -98,6 +104,11 @@ class StellarViewer extends React.Component {
         <div className="StellarViewer__options">
           <Switch label="Orbit Lines"></Switch>
           <Switch label="Spacecraft Trajectories"></Switch>
+          <Switch
+            label="Pause Renderer"
+            checked={this.state.paused}
+            onChange={this.createSwitchHandler('paused')}
+          />
           <Switch
             label="Use Anisotropy"
             checked={this.state.use_anisotropy}
@@ -113,12 +124,18 @@ class StellarViewer extends React.Component {
             checked={this.state.display_stats}
             onChange={this.createSwitchHandler('display_stats')}
           />
-          <ul className={`stats`}>
-            <li>{this.state.stats_fps.toFixed(1)} fps</li>
-            <li>{this.state.stats_draw_call_count} draw calls</li>
-            <li>{this.state.stats_vertex_count} vertices</li>
-            <li>{this.state.stats_frame_count} frames</li>
-          </ul>
+          <AnimateHeight
+            duration="150"
+            height={this.state.display_stats ? 'auto' : 0}
+          >
+            <ul className={`stats`}>
+              <li>{this.state.stats_fps.toFixed(1)} fps</li>
+              <li>{this.state.stats_draw_call_count} draw calls</li>
+              <li>{this.state.stats_vertex_count} vertices</li>
+              <li>{this.state.stats_frame_count} frames</li>
+            </ul>
+            <CircularProgress />
+          </AnimateHeight>
         </div>
       </section>
     );

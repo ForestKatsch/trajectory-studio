@@ -289,7 +289,7 @@ export default class Spatial {
   getRenderables() {
     let renderables = [];
 
-    if(this.hasDataFunction('draw')) {
+    if(this.hasDataFunction('draw') && this.enabled) {
       renderables.push(this);
     }
 

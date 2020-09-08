@@ -30,11 +30,6 @@
   border-top: 2px dashed var(--widget-inactive-border);
   margin-top: 8px;
   padding-top: 8px;
-
-  display: none;
-}
-
-.StellarViewer--stats-visible .StellarViewer__options .stats {
   display: block;
 }
 

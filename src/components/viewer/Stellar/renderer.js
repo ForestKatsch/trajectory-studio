@@ -272,7 +272,6 @@ export default class StellarRenderer extends Renderer {
     let now = Date.now() / 100;
 
     this.atmosphere.setEnabled(this.options.display_atmospheres);
-    //this.(this.options.display_atmospheres);
     
     //this.camera.flagDirty();
     //vec3.set(this.body.position, Math.sin(now / 32.30) * 0.5, Math.sin(now / 66.30) * 0.5, 0);
@@ -280,7 +279,7 @@ export default class StellarRenderer extends Renderer {
     
     //this.scene.setUniform('uStarPosition', this.mesh.position);
     
-    this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
+    this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
     //this.scene.uniforms.set('uStarPosition', vec3.fromValues(100, 40, 100));
     //this.scene.uniforms.set('uStarPosition', vec3.fromValues(0, 50, -100));
     
@@ -288,6 +287,8 @@ export default class StellarRenderer extends Renderer {
     quat.fromEuler(this.earth.rotation, 30, now * 3, 0);
     //quat.fromEuler(this.spinny.rotation, 0, 220, 0);
     //this.material.set('uColor', [Math.sin(Date.now() / 50), 0, 0]);
+
+    this.scene.setEnabled(!this.options.paused);
 
     if(super.render()) {
       this.viewer.setState(state => ({
