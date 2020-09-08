@@ -5,10 +5,11 @@ import Spatial from './spatial.js';
 import Material from './material.js';
 import {Uniforms} from './shader.js';
 
+// Render order must always be below 255.
 export const RENDER_ORDER = {
   AUTO: 0,
-  OPAQUE: 1000,
-  TRANSPARENT: 3000
+  OPAQUE: 80,
+  TRANSPARENT: 120
 };
 
 // # `Scene`
@@ -43,7 +44,11 @@ export default class Scene {
 
   update(renderer) {
     this.root.update(renderer);
-    this.root.update(renderer);
+    this.root.updatePost(renderer);
+  }
+
+  batch(renderer) {
+    return this.root.getRenderables(renderer);
   }
 
   // TODO: fix naive ordering, add batching.
@@ -57,7 +62,13 @@ export default class Scene {
       return;
     }
 
-    this.root.draw(renderer);
+    let renderables = this.batch(renderer);
+
+    //Logger.debug(`Scene is batched and sorted; drawing ${renderables.length} meshes...`);
+
+    for(let renderable of renderables) {
+      renderable.draw(renderer);
+    }
   }
   
   setUniform(name, value) {

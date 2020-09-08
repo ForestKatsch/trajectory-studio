@@ -10,6 +10,8 @@ import Shader from './shader.js';
 import Mesh from './mesh.js';
 import Texture from './texture.js';
 
+import {BLEND, DEPTH} from './material.js';
+
 import fallback_vert from './fallback.vert';
 import fallback_frag from './fallback.frag';
 
@@ -43,7 +45,9 @@ export default class Renderer extends Asset {
     // This can be used to avoid re-activating an already-active GL object.
     this.active = {
       shader: null,
-      buffer: null
+      buffer: null,
+      blend_mode: null,
+      depth_mode: null,
     };
 
     this.performance = {
@@ -153,6 +157,10 @@ export default class Renderer extends Asset {
     this.setState(this.getCombinedState([
       this.textures
     ]));
+
+    if(this.isLoaded()) {
+      Logger.info(`All initial assets for this renderer are loaded.`);
+    }
   }
 
   handleLoaderChildStateChange() {
@@ -258,9 +266,11 @@ export default class Renderer extends Asset {
     // Set up the clear color.
     let gl = this.context;
     gl.clearColor(0.0, 0.3, 0.0, 1.0);
+    
     gl.clearDepth(1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
+
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
   }
@@ -388,6 +398,60 @@ export default class Renderer extends Asset {
     this._dirty = true;
   }
 
+  setBlendMode(blend_mode) {
+    const gl = this.context;
+
+    if(this.active.blend_mode === blend_mode) {
+      return;
+    }
+
+    this.active.blend_mode = blend_mode;
+    
+    switch(blend_mode) {
+    case BLEND.OPAQUE:
+      //Logger.debug('Switching to blend mode OPAQUE');
+      gl.blendFunc(gl.ONE, gl.ZERO);
+      break;
+    case BLEND.ADD:
+      //Logger.debug('Switching to blend mode ADD');
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      break;
+    default:
+      Logger.warn(`Invalid blend mode '${blend_mode}'`);
+    }
+  }
+
+  setDepthMode(depth_mode) {
+    const gl = this.context;
+
+    if(this.active.depth_mode === depth_mode) {
+      return;
+    }
+
+    this.active.depth_mode = depth_mode;
+    
+    switch(depth_mode) {
+    case DEPTH.IGNORE:
+      //Logger.debug('Switching to depth mode IGNORE');
+      gl.disable(gl.DEPTH_TEST);
+      gl.depthMask(false);
+      break;
+    case DEPTH.READ_ONLY:
+      //Logger.debug('Switching to depth mode READ_ONLY');
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthMask(false);
+      break;
+    case DEPTH.READ_WRITE:
+      //Logger.debug('Switching to depth mode READ_WRITE');
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthMask(true);
+      break;
+    default:
+      Logger.warn(`Invalid depth mode '${depth_mode}'`);
+    }
+  }
+
   // The primary render function. This handles everything about rendering, from start to finish.
   render() {
     // If we've been deinitialized, bail out.
@@ -413,6 +477,10 @@ export default class Renderer extends Asset {
       this._dirty = false;
 
       let gl = this.context;
+      
+      this.setBlendMode(BLEND.OPAQUE);
+      this.setDepthMode(DEPTH.READ_WRITE);
+      
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
       gl.viewport(0, 0, this.size[0] * this.dpi, this.size[1] * this.dpi);

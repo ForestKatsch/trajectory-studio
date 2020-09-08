@@ -3,9 +3,8 @@ import {vec3, vec4, quat} from 'gl-matrix';
 
 import Renderer from '../../../webgl/renderer.js';
 import Scene from '../../../webgl/scene.js';
-import Material from '../../../webgl/material.js';
+import Material, {BLEND, DEPTH} from '../../../webgl/material.js';
 import {WRAP} from '../../../webgl/texture.js';
-import {BLEND, DEPTH} from '../../../webgl/shader.js';
 import Spatial, {MeshData, CameraData} from '../../../webgl/spatial.js';
 
 import default_vert from './default.vert';
@@ -18,6 +17,12 @@ import atmosphere_vert from './atmosphere.vert';
 import atmosphere_frag from './atmosphere.frag';
 
 export default class StellarRenderer extends Renderer {
+
+  init() {
+    this.options.desynchronized = true;
+    
+    super.init();
+  }
 
   create() {
     super.create();
@@ -42,8 +47,6 @@ export default class StellarRenderer extends Renderer {
     this.createShader('star', default_vert, star_frag);
     
     let shader = this.createShader('atmosphere', atmosphere_vert, atmosphere_frag);
-    shader.blend_mode = BLEND.ADD;
-    shader.depth_mode = DEPTH.READ_ONLY;
 
     this.scene.uniforms.set('uColor', vec3.fromValues(1, 1, 1));
     
@@ -76,11 +79,15 @@ export default class StellarRenderer extends Renderer {
     this.spinny = new Spatial(this.scene, 'spinny');
     earth.add(this.spinny);
 
+    let atmosphere_material = new Material(this.scene, 'atmosphere');
+    atmosphere_material.blend_mode = BLEND.ADD;
+    atmosphere_material.depth_mode = DEPTH.READ_ONLY;
+    
     let atmosphere = new Spatial(this.scene, 'atmosphere');
-    atmosphere.setData(new MeshData('atmosphere', new Material(this.scene, 'atmosphere')));
-
-    atmosphere.scale = vec3.fromValues(1.5, 1.5, 1.5);
-    atmosphere.data.material.set('uAtmosphereParameters', vec4.fromValues(1 / 1.5 / 2, 1 / 2, 70, 1000));
+    atmosphere.setData(new MeshData('atmosphere', atmosphere_material));
+    
+    atmosphere.scale = vec3.fromValues(1.1, 1.1, 1.1);
+    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / 1.1 / 2, 1 / 2, 30, 1000));
 
     let atmosphere_scatter_color = vec4.fromValues(10, 20, 40);
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 1 / 4);
@@ -88,7 +95,7 @@ export default class StellarRenderer extends Renderer {
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 4.0);
     atmosphere_scatter_color[3] = 50;
     
-    atmosphere.data.material.set('uAtmosphereRaleighScatter', atmosphere_scatter_color);
+    atmosphere.setUniform('uAtmosphereRaleighScatter', atmosphere_scatter_color);
 
     this.atmosphere = atmosphere;
 
@@ -96,7 +103,7 @@ export default class StellarRenderer extends Renderer {
 
     this.earth = earth;
     
-    let steps = 1;
+    let steps = 32;
     for(let i=0; i<steps; i++) {
       let mesh = new Spatial(this.scene, `mesh-${i}`);
       mesh.setData(new MeshData('quadsphere', new Material(this.scene, 'body')));
@@ -272,13 +279,12 @@ export default class StellarRenderer extends Renderer {
     
     //this.scene.setUniform('uStarPosition', this.mesh.position);
     
-    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 0, Math.cos(now / 10.0) *100));
-    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
-    this.scene.uniforms.set('uStarPosition', vec3.fromValues(100, 40, 100));
+    this.scene.uniforms.set('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
+    //this.scene.uniforms.set('uStarPosition', vec3.fromValues(100, 40, 100));
     //this.scene.uniforms.set('uStarPosition', vec3.fromValues(0, 50, -100));
     
     //quat.fromEuler(this.earth.rotation, Math.sin(now / 7) * 30, 0, Math.sin(now / 7) * 30);
-    quat.fromEuler(this.earth.rotation, 0, now * 3, 0);
+    quat.fromEuler(this.earth.rotation, 30, now * 3, 0);
     //quat.fromEuler(this.spinny.rotation, 0, 220, 0);
     //this.material.set('uColor', [Math.sin(Date.now() / 50), 0, 0]);
 

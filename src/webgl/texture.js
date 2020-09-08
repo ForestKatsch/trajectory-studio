@@ -137,6 +137,7 @@ export default class Texture extends Asset {
   // Assigns the image to WebGL.
   assignImage() {
     Logger.info(`Assigning image '${this.name}' to WebGL texture.`);
+    
     const gl = this.renderer.context;
     
     const internalFormat = gl.RGB;
@@ -154,10 +155,6 @@ export default class Texture extends Asset {
   }
 
   applyParameters() {
-    if(!this.isLoaded()) {
-      return;
-    }
-
     const gl = this.renderer.context;
     const type = this.getGLTextureType();
     
@@ -200,9 +197,9 @@ export default class Texture extends Asset {
   }
 
   handleImageLoad() {
-    this.setState(STATE.LOAD_COMPLETE);
-    
     this.assignImage();
+    
+    this.setState(STATE.LOAD_COMPLETE);
   }
 
   handleImageError(e) {

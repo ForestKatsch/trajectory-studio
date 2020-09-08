@@ -4,6 +4,7 @@ import {vec3, quat, mat4} from 'gl-matrix';
 import Logger from 'js-logger';
 import {Uniforms} from './shader.js';
 import {RENDER_ORDER} from './scene.js';
+import {BLEND, DEPTH} from './material.js';
 
 // # `SpatialData`
 //
@@ -29,9 +30,15 @@ export class SpatialData {
     //
   }
 
-  draw(renderer, spatial) {
-    //
+  getRenderSort(spatial) {
+    return 0;
   }
+
+  /*
+  draw(renderer, spatial) {
+
+  }
+  */
   
 }
 
@@ -42,20 +49,61 @@ export class MeshData extends SpatialData {
 
     this.mesh_name = mesh_name;
     this.material = material;
-    
+
     this.uniforms = new Uniforms(this.flagDirty.bind(this));
   }
 
+  getMaterial(spatial) {
+    return this.material || (spatial ? spatial.scene.fallback_material : null);
+  }
+
+  getRenderSort(spatial) {
+    let sort = 0;
+    
+    let shift = (start, width, value) => {
+      if(start > Math.pow(width)) {
+        Logger.error(`Cannot shift '${value}' for render sort order; would cause overflow within '${width}'`);
+        return 0;
+      }
+      
+      return value << start;
+    };
+
+    // The render sort order is 32 bits, and is partitioned as follows:
+    //
+    // ```
+    // |-------|-------|-------|-------
+    // 12345678901234567890123456789012
+    // | order |  mat  |     depth
+    // ```
+    //
+    // If the material is marked as a non-opaque blend mode, the order is instead:
+    //
+    // ```
+    // |-------|-------|-------|-------
+    // 12345678901234567890123456789012
+    // | order | depth         |  mat
+    // ```
+
+    let material = this.getMaterial(spatial);
+    let camera = spatial.scene.camera.getData(CameraData);
+
+    let depth = Math.pow(Math.min(Math.max((-spatial.modelview_matrix[4 * 3 + 2] - camera.near) / (camera.far - camera.near), 0), 1), 0.2) * 16;
+
+    sort |= shift(32, 8, this.order);
+    sort |= shift(24, 8, material.index);
+    sort |= shift(16, 16, depth);
+    
+    return sort;
+  }
+
   draw(renderer, spatial) {
-    super.draw(renderer, spatial);
+    //super.draw(renderer, spatial);
+    
 
     //Logger.debug(`Drawing mesh for '${spatial.name}'`);
 
-    let material = this.material;
-
-    if(material === null) {
-      material = spatial.scene.fallback_material;
-    }
+    let material = this.getMaterial(spatial);
     
     let mesh = renderer.getMesh(this.mesh_name);
     let shader = renderer.getShader(this.material.shader_name);
@@ -69,11 +117,11 @@ export class MeshData extends SpatialData {
       Logger.warn(`MeshInstance for '${spatial.name}' uses material '${material.name}' that uses non-existent shader '${material.shader_name}'`);
       return;
     }
-
+    
     let uniforms = {
       ...spatial.scene.uniforms.get(),
       ...material.uniforms.get(),
-      ...(spatial.scene.camera ? spatial.scene.camera.data.uniforms.get() : {}),
+      ...(spatial.scene.camera ? spatial.scene.camera.getData(CameraData).uniforms.get() : {}),
       ...spatial.uniforms.get(),
       ...this.uniforms.get(),
     };
@@ -84,6 +132,10 @@ export class MeshData extends SpatialData {
     renderer.performance.draw_call_count += 1;
     renderer.performance.vertex_count += mesh.vertex_count;
 
+    renderer.setBlendMode(material.blend_mode);
+    renderer.setDepthMode(material.depth_mode);
+
+    //Logger.debug(`Drawing object '${spatial.name}'`);
     mesh.draw(shader);
   }
   
@@ -150,8 +202,10 @@ export default class Spatial {
     this.parent = null;
     this.children = [];
 
+    this.render_sort = 0;
+    
     // A `SpatialData` object that can be called upon to perform tasks during update and draw functions.
-    this.data = null;
+    this._data = null;
 
     this.uniforms = new Uniforms(this.flagDirty.bind(this));
   }
@@ -168,16 +222,6 @@ export default class Spatial {
     }
   }
 
-  callData(method) {
-    if(!this.data) {
-      return;
-    }
-
-    if(method in this.data) {
-      this.data[method].apply(this.data, Array.prototype.slice.call(arguments, 1));
-    }
-  }
-
   // Called before drawing; this function updates the scene tree.
   update(renderer) {
     if(!this.enabled) {
@@ -186,6 +230,21 @@ export default class Spatial {
     
     this.callData('update', renderer, this);
 
+    this.updateMatrices();
+    
+    for(let child of this.children) {
+      child.update(renderer);
+    }
+
+  }
+
+  updateRenderSort() {
+    if(this._data) {
+      this.render_sort = this._data.getRenderSort(this);
+    }
+  }
+
+  updateMatrices() {
     mat4.fromRotationTranslationScale(this.world_matrix, this.rotation, this.position, this.scale);
 
     if(this.parent !== null) {
@@ -197,14 +256,42 @@ export default class Spatial {
     }
 
     mat4.invert(this.world_matrix_inverse, this.world_matrix);
-    this.uniforms.set('uWorldMatrix_i', this.world_matrix_inverse);
+  }
+
+  // Called before drawing; this function updates the scene tree.
+  updatePost(renderer) {
+    if(!this.enabled) {
+      return;
+    }
     
-    this.uniforms.set('uWorldMatrix', this.world_matrix);
-    this.uniforms.set('uModelViewMatrix', this.modelview_matrix);
+    this.updateMatrices();
+    this.updateRenderSort();
+    this.updateUniforms();
     
     for(let child of this.children) {
-      child.update(renderer);
+      child.updatePost(renderer);
     }
+
+  }
+
+  updateUniforms() {
+    this.uniforms.set('uWorldMatrix', this.world_matrix);
+    this.uniforms.set('uWorldMatrix_i', this.world_matrix_inverse);
+    this.uniforms.set('uModelViewMatrix', this.modelview_matrix);
+  }
+
+  getRenderables() {
+    let renderables = [];
+
+    if(this.hasDataFunction('draw')) {
+      renderables.push(this);
+    }
+
+    for(let child of this.children) {
+      renderables.push.apply(renderables, child.getRenderables());
+    }
+
+    return renderables;
   }
 
   draw(renderer) {
@@ -213,10 +300,6 @@ export default class Spatial {
     }
 
     this.callData('draw', renderer, this);
-
-    for(let child of this.children) {
-      child.draw(renderer);
-    }
   }
 
   setUniform(name, value) {
@@ -240,7 +323,37 @@ export default class Spatial {
     
     data.scene = this.scene;
 
-    this.data = data;
+    this._data = data;
+  }
+
+  getData(type) {
+    if(this._data instanceof type) {
+      return this._data;
+    }
+
+    return this._data;
+  }
+
+  callData(method) {
+    if(!this._data) {
+      return;
+    }
+
+    if(method in this._data) {
+      this._data[method].apply(this._data, Array.prototype.slice.call(arguments, 1));
+    }
+  }
+  
+  hasDataFunction(method) {
+    if(!this._data) {
+      return;
+    }
+
+    if(method in this._data) {
+      return true;
+    }
+
+    return false;
   }
 
   // Adds a child.

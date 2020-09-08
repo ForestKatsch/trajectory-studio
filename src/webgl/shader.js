@@ -148,17 +148,6 @@ export class Uniforms {
   }
 }
 
-export const BLEND = {
-  OPAQUE: 0,
-  ADD: 1
-};
-
-export const DEPTH = {
-  IGNORE: 0,
-  READ_ONLY: 1,
-  NORMAL: 2
-};
-
 // # `Shader`
 // This is a shader. (Dear god.)
 // It contains vertex and fragment shader sources.
@@ -194,10 +183,6 @@ export default class Shader {
     this.attributes = {};
     
     this.uniforms = {};
-
-    this.blend_mode = BLEND.OPAQUE;
-
-    this.depth_mode = DEPTH.NORMAL;
   }
 
   // Compiles a single shader stage and returns the result, or throws an error.
@@ -293,29 +278,6 @@ export default class Shader {
     this.renderer.active.shader = this;
     
     gl.useProgram(this.program);
-
-    if(this.blend_mode === BLEND.ADD) {
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE);
-    } else {
-      gl.disable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ZERO);
-    }
-
-    switch(this.depth_mode) {
-    case DEPTH.IGNORE:
-      gl.disable(gl.DEPTH_TEST);
-      gl.depthMask(gl.FALSE);
-      break;
-    case DEPTH.READ_ONLY:
-      gl.enable(gl.DEPTH_TEST);
-      gl.depthMask(gl.FALSE);
-      break;
-    default:
-      gl.enable(gl.DEPTH_TEST);
-      gl.depthMask(gl.TRUE);
-      break;
-    }
   }
 
   isReady() {
