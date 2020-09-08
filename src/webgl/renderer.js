@@ -3,8 +3,9 @@ import debounce from 'debounce';
 
 import Logger from 'js-logger';
 
-import {vec2} from 'gl-matrix';
+import {vec2, vec4} from 'gl-matrix';
 
+import Loader, {Asset, STATE} from './loader.js';
 import Shader from './shader.js';
 import Mesh from './mesh.js';
 import Texture from './texture.js';
@@ -13,9 +14,14 @@ import fallback_vert from './fallback.vert';
 import fallback_frag from './fallback.frag';
 
 // A WebGL 1 renderer.
-export default class Renderer {
+export default class Renderer extends Asset {
 
   constructor(canvas, options) {
+    super('@renderer');
+
+    // Set up the asset loader to allow our state to change at will.
+    this.can_move_backwards = true;
+    
     this.canvas = canvas;
 
     this.options = options ? options : {};
@@ -57,7 +63,7 @@ export default class Renderer {
     this.meshes = {};
 
     // Contains all the textures.
-    this.textures = {};
+    this.textures = new Loader('@texture-loader');
 
     // The scene to render.
     this.scene = null;
@@ -67,11 +73,15 @@ export default class Renderer {
 
     // To avoid horrific error spam in the console. This should theoretically never happen.
     this.pause_rendering = false;
+
+    this.handleLoaderStateChange = this.handleLoaderStateChange.bind(this);
   }
 
   init() {
     Logger.debug("Initializing WebGL renderer...");
     
+    this.setState(STATE.LOADING);
+
     try {
       this.context = this.canvas.getContext('webgl', {
         alpha: false,
@@ -102,8 +112,17 @@ export default class Renderer {
 
     this.create();
 
+    this.textures.on('statechange', this.handleLoaderStateChange);
+    this.handleLoaderStateChange();
+
     // And kick off the first frame.
     requestAnimationFrame(this.render.bind(this));
+  }
+
+  handleLoaderStateChange() {
+    this.setState(this.getCombinedState([
+      this.textures
+    ]));
   }
 
   create() {
@@ -143,7 +162,8 @@ export default class Renderer {
   }
 
   initTextures() {
-    this.createTexture('@fallback');
+    this.createTexture('@fallback').setFromColor(vec4.fromValues(1.0, 0.0, 1.0, 1.0));
+    //fallback.setState(STATE.LOAD_COMPLETE);
   }
 
   initCanvas() {
@@ -226,20 +246,19 @@ export default class Renderer {
     Logger.debug(`Creating texture '${name}'...`);
     
     let texture = new Texture(this, name);
-
     texture.init();
 
-    this.textures[name] = texture;
+    this.textures.addAsset(name, texture);
 
     return texture;
   }
   
   getTexture(name) {
-    if(name in this.textures && this.textures[name].isReady()) {
-      return this.textures[name];
+    if(this.textures.hasAsset(name) && this.textures.getAsset(name).isReady()) {
+      return this.textures.getAsset(name);
     }
 
-    return this.textures['@fallback'];
+    return this.textures.getAsset('@fallback');
   }
 
   // Automatically copies the size from the parent element of the canvas.

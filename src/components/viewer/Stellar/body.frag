@@ -29,8 +29,8 @@ void main() {
   vec3 star_direction = normalize(uStarPosition - vWorldPosition);
   
   float star_exposure = dot(vWorldNormal, star_direction);
-  float star_brightness = pow(clamp(star_exposure, 0.0, 1.0), 0.65);
-  //star_brightness = star_brightness * 0.95 + 0.05;
+  float star_brightness = pow(clamp(star_exposure, 0.0, 1.0), 1.0);
+  star_brightness = star_brightness * 0.95 + 0.05;
 
   float len = sqrt(pow(vPosition.x, 2.0) + pow(vPosition.z, 2.0));
 
@@ -49,7 +49,7 @@ void main() {
 
   vec3 specular = color * pow(clamp(dot(reflection_direction, view_direction), 0.0, 1.0), 5.0) * (1.0 - landinfo.r);
 
-  vec3 night = uNightColor * landinfo.g * ((1.0 - star_exposure) * 0.5);
+  vec3 night = uNightColor * landinfo.g * clamp(pow(-star_exposure, 0.5), 0.0, 1.0);
   
   gl_FragColor = vec4(diffuse + specular + night, 1.0);
 }

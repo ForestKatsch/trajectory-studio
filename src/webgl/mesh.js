@@ -100,7 +100,7 @@ export class Buffer {
     
     for(let name of Object.keys(this.attributes)) {
       let attrib = this.attributes[name];
-      let attribute_location = shader.getAttribute(name);
+      let attribute_location = shader.getAttributeLocation(name);
 
       if(attribute_location === -1) {
         continue;

@@ -1,5 +1,5 @@
 
-import {vec3, vec4, quat, mat4} from 'gl-matrix';
+import {vec3, vec4, quat} from 'gl-matrix';
 
 import Renderer from '../../../webgl/renderer.js';
 import Scene from '../../../webgl/scene.js';
@@ -8,7 +8,7 @@ import {BLEND, DEPTH} from '../../../webgl/shader.js';
 import Spatial, {MeshData, CameraData} from '../../../webgl/spatial.js';
 
 import default_vert from './default.vert';
-import default_frag from './default.frag';
+//import default_frag from './default.frag';
 
 import star_frag from './star.frag';
 import body_frag from './body.frag';
@@ -59,7 +59,7 @@ export default class StellarRenderer extends Renderer {
     body.data.material.set('uColor', vec3.fromValues(0.5, 0.5, 0.5));
     body.data.material.set('uLandColor', vec3.fromValues(0.5, 0.8, 0.6));
     body.data.material.set('uOceanColor', vec3.fromValues(0.2, 0.4, 0.6));
-    body.data.material.set('uNightColor', vec3.fromValues(0.8, 0.45, 0.3));
+    body.data.material.set('uNightColor', vec3.fromValues(0.8, 0.55, 0.4));
     body.data.material.set('uTexture', 'stellar-body-earth');
     
     this.scene.root.add(body);
@@ -71,8 +71,8 @@ export default class StellarRenderer extends Renderer {
     atmosphere.setData(new MeshData('atmosphere', new Material(this.scene, 'atmosphere')));
 
     atmosphere.scale = vec3.fromValues(1.2, 1.2, 1.2);
-    atmosphere.data.material.set('uAtmosphereParameters', vec4.fromValues(1 / 1.2 / 2, 1 / 2, 40, 1500));
-    atmosphere.data.material.set('uAtmosphereRaleighScatter', vec4.fromValues(50, 70, 130, 50));
+    atmosphere.data.material.set('uAtmosphereParameters', vec4.fromValues(1 / 1.2 / 2, 1 / 2, 30, 1000));
+    atmosphere.data.material.set('uAtmosphereRaleighScatter', vec4.fromValues(40, 80, 120, 50));
 
     this.atmosphere = atmosphere;
 
@@ -261,7 +261,7 @@ export default class StellarRenderer extends Renderer {
     //this.scene.uniforms.set('uStarPosition', vec3.fromValues(0, 50, -100));
     
     //quat.fromEuler(this.body.rotation, Math.sin(now / 30.30) * 50, 0, Math.sin(now / 10) * 50);
-    quat.fromEuler(this.body.rotation, 0, now, 0);
+    quat.fromEuler(this.body.rotation, 0, now * 3, 0);
     quat.fromEuler(this.spinny.rotation, 0, 220, 0);
     //this.material.set('uColor', [Math.sin(Date.now() / 50), 0, 0]);
     

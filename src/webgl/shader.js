@@ -1,6 +1,62 @@
 
 import Logger from 'js-logger';
 
+export const TYPE = {
+  FVEC2: 'FVEC2',
+  FVEC3: 'FVEC3',
+  FVEC4: 'FVEC4',
+  IVEC2: 'IVEC2',
+  IVEC3: 'IVEC3',
+  IVEC4: 'IVEC4',
+  BOOL: 'BOOL',
+  BVEC2: 'BVEC2',
+  BVEC3: 'BVEC3',
+  BVEC4: 'BVEC4',
+  MAT2: 'MAT2',
+  MAT3: 'MAT3',
+  MAT4: 'MAT4',
+  TEXTURE_2D: 'TEXTURE_2D',
+  TEXTURE_CUBEMAP: 'TEXTURE_CUBEMAP',
+};
+
+export const GL_TYPE = {
+  FVEC2: 0x8B50,
+  FVEC3: 0x8B51,
+  FVEC4: 0X8B52,
+  IVEC2: 0X8B53,
+  IVEC3: 0X8B54,
+  IVEC4: 0X8B55,
+  BOOL: 0X8B56,
+  BVEC2: 0X8B57,
+  BVEC3: 0X8B58,
+  BVEC4: 0X8B59,
+  MAT2: 0X8B5A,
+  MAT3: 0X8B5B,
+  MAT4: 0X8B5C,
+  TEXTURE_2D: 0X8B5E,
+  TEXTURE_CUBEMAP: 0X8B60
+};
+
+/* eslint-disable no-useless-computed-key */
+
+export const FROM_GL_TYPE = {
+  [0x8B50]: TYPE.FVEC2,
+  [0x8B51]: TYPE.FVEC3,
+  [0X8B52]: TYPE.FVEC4,
+  [0X8B53]: TYPE.IVEC2,
+  [0X8B54]: TYPE.IVEC3,
+  [0X8B55]: TYPE.IVEC4,
+  [0X8B56]: TYPE.BOOL,
+  [0X8B57]: TYPE.BVEC2,
+  [0X8B58]: TYPE.BVEC3,
+  [0X8B59]: TYPE.BVEC4,
+  [0X8B5A]: TYPE.MAT2,
+  [0X8B5B]: TYPE.MAT3,
+  [0X8B5C]: TYPE.MAT4,
+  [0X8B5E]: TYPE.TEXTURE_2D,
+  [0X8B6]: TYPE.TEXTURE_CUBEMAP0
+};
+
 export class Uniforms {
   
   constructor(dirty_function) {
@@ -120,6 +176,8 @@ export default class Shader {
       this.program = null;
       throw new Error('webgl-shader-link');
     }
+
+    this.fetchShaderParameters();
   }
 
   // Deinitialize this shader.
@@ -134,6 +192,32 @@ export default class Shader {
     }
     
     this.program = null;
+  }
+
+  fetchShaderParameters() {
+    const gl = this.renderer.context;
+    
+    let attribute_count = gl.getProgramParameter(this.program, gl.ACTIVE_ATTRIBUTES);
+    for(let i=0; i<attribute_count; i++) {
+      var attribute = gl.getActiveAttrib(this.program, i);
+      
+      this.attributes[attribute.name] = {
+        location: gl.getAttribLocation(this.program, attribute.name),
+        name: attribute.name,
+        type: FROM_GL_TYPE[attribute.type]
+      };
+    }
+    
+    let uniform_count = gl.getProgramParameter(this.program, gl.ACTIVE_UNIFORMS);
+    for(let i=0; i<uniform_count; i++) {
+      let uniform = gl.getActiveUniform(this.program, i);
+      
+      this.uniforms[uniform.name] = {
+        location: gl.getUniformLocation(this.program, uniform.name),
+        name: uniform.name,
+        type: FROM_GL_TYPE[uniform.type]
+      };
+    }
   }
 
   // Sets this shader as active if necessary.
@@ -156,7 +240,6 @@ export default class Shader {
       gl.blendFunc(gl.ONE, gl.ZERO);
     }
 
-    /*
     switch(this.depth_mode) {
     case DEPTH.IGNORE:
       gl.disable(gl.DEPTH_TEST);
@@ -170,7 +253,7 @@ export default class Shader {
       gl.enable(gl.DEPTH_TEST);
       gl.depthMask(gl.TRUE);
       break;
-    }*/
+    }
   }
 
   isReady() {
@@ -178,80 +261,76 @@ export default class Shader {
   }
   
   // Given an attribute name, returns the location or throws an error if the attribute does not exist.
-  getAttribute(name) {
+  getAttributeLocation(name) {
     if(!(name in this.attributes)) {
-      const gl = this.renderer.context;
-      
-      let location = gl.getAttribLocation(this.program, name);
-      
-      if(location === -1) {
-        Logger.error(`Could not find attribute named '${name}' in shader '${this.name}'`);
-        location = -1;
-        //throw new Error('webgl-shader-invalid-attribute');
-      }
-      
-      this.attributes[name] = location;
+      //Logger.error(`Could not find attribute named '${name}' in shader '${this.name}'`);
+      return -1;
+      //throw new Error('webgl-shader-invalid-attribute');
     }
     
-    return this.attributes[name];
+    return this.attributes[name].location;
   }
 
   // Same as the above, but for uniforms.
-  getUniform(name) {
+  getUniformLocation(name) {
     if(!(name in this.uniforms)) {
-      const gl = this.renderer.context;
-      
-      const location = gl.getUniformLocation(this.program, name);
-      
-      if(location === -1) {
-        Logger.error(`Could not find uniform named '${name}' in shader '${this.name}'`);
-        location = -1;
-        //throw new Error('webgl-shader-invalid-uniform');
-      }
-      
-      this.uniforms[name] = location;
+      //Logger.error(`Could not find uniform named '${name}' in shader '${this.name}'`);
+      return -1;
+      //throw new Error('webgl-shader-invalid-uniform');
     }
     
-    return this.uniforms[name];
+    return this.uniforms[name].location;
   }
 
-  setUniform(name, value, type) {
-    const gl = this.renderer.context;
-    const location = this.getUniform(name);
-    
-    if(type === undefined || type === 'auto') {
-
-      if(typeof value === typeof 0) {
-        if(value % 1 === value) {
-          type = 'int';
-        } else {
-          type = 'float';
-        }
-        // A texture.
-      } else if(typeof value === typeof '') {
-        type = 'texture';
-      } else if(typeof value === typeof []) {
-        if(value.length === 2) {
-          type = 'fvec2';
-        } else if(value.length === 3) {
-          type = 'fvec3';
-        } else if(value.length === 4) {
-          type = 'fvec4';
-        } else if(value.length === 9) {
-          type = 'mat3';
-        } else if(value.length === 16) {
-          type = 'mat4';
-        } else {
-          Logger.warn(`Cannot auto-detect type of uniform '${name}' (on shader '${this.name}') array with ${value.length} elements, ignoring`, value);
-          return;
-        }
-      } else {
-        Logger.warn(`Cannot auto-detect type of uniform '${name}', ignoring`, value);
-        return;
-      }
+  // Given a name (for logging), a value, and an (optional) type,
+  // returns the type (if given), the autodetected type (which isn't guaranteed to be correct!), or null.
+  detectUniformType(name, value, type) {
+    if(type !== undefined && type !== 'auto') {
+      return type;
     }
 
-    // Don't debug this by default. (It just produces absolutely ridiculous amounts of spam.)
+    if(typeof value === typeof 0) {
+      if(value % 1 === value) {
+        type = 'int';
+      } else {
+        type = 'float';
+      }
+      // A texture.
+    } else if(typeof value === typeof '') {
+      type = 'texture';
+    } else if(typeof value === typeof []) {
+      if(value.length === 2) {
+        type = 'fvec2';
+      } else if(value.length === 3) {
+        type = 'fvec3';
+      } else if(value.length === 4) {
+        type = 'fvec4';
+      } else if(value.length === 9) {
+        type = 'mat3';
+      } else if(value.length === 16) {
+        type = 'mat4';
+      } else {
+        Logger.warn(`Cannot auto-detect type of uniform '${name}' (on shader '${this.name}') array with ${value.length} elements, ignoring`, value);
+        return;
+      }
+    } else {
+      Logger.warn(`Cannot auto-detect type of uniform '${name}', ignoring`, value);
+      return null;
+    }
+
+    return type;
+  }
+
+  // Sets most uniform types. Does not set texture uniforms.
+  setUniform(name, value, type) {
+    const gl = this.renderer.context;
+    const location = this.getUniformLocation(name);
+
+    if(location < 0) {
+      return;
+    }
+    
+    // Don't log debug info by default. (It just produces absolutely ridiculous amounts of spam.)
     if(false) {
       let value_string = '?';
 
@@ -303,10 +382,7 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
       gl.uniformMatrix4fv(location, false, value);
       break;
     case 'texture':
-      let texture = this.renderer.getTexture(value);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, texture.texture);
-      gl.uniform1i(location, 0);
+      Logger.warn(`Cannot set texture uniform '${name}' in 'setUniform'. (See 'setTextureUniform.)`, value);
       break;
     default:
       Logger.warn(`Cannot set uniform '${name}' with unknown type '${type}' ignoring`, value);
@@ -314,21 +390,96 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
     }
   }
 
+  // Given a uniform name, a`Texture` (see `texture.js`, and a texture index, assigns
+  // the uniform.
+  setTextureUniform(uniform_name, texture, index) {
+    const gl = this.renderer.context;
+    const location = this.getUniformLocation(uniform_name);
+
+    //Logger.debug(`Assigning '${texture.name}' as index ${index} for uniform '${uniform_name}'`);
+    
+    gl.activeTexture(gl.TEXTURE0 + index);
+    gl.bindTexture(gl.TEXTURE_2D, texture.texture);
+    gl.uniform1i(location, index);
+  }
+  
   // Expects a key-value listing of uniforms.
   // The uniform values should either be the value itself,
   // or an array of ["type", value].
   setUniforms(uniforms) {
+    let textures = {};
+    
     for(let name of Object.keys(uniforms)) {
-      
       if(name.startsWith('@')) {
         continue;
       }
-      
+
+      let value = uniforms[name];
+      let type = 'auto';
+
       if(typeof uniforms[name] === typeof [] && typeof uniforms[name][0] === typeof '') {
-        this.setUniform(name, uniforms[name][1], uniforms[name][0]);
-      } else {
-        this.setUniform(name, uniforms[name]);
+        type = uniforms[name][0];
+        value = uniforms[name][1];
       }
+
+      type = this.detectUniformType(name, value, type);
+
+      if(type === 'texture') {
+        textures[name] = {
+          uniform_name: name,
+          texture_name: value
+        };
+        continue;
+      }
+      
+      this.setUniform(name, value, type);
+    }
+
+    this.setTextureUniforms(textures);
+  }
+
+  // Sets every texture required from the uniforms here. Note that the format
+  // for `uniforms` is not the same as above.
+  setTextureUniforms(uniforms) {
+    let texture_index = {
+      [TYPE.TEXTURE_2D]: 0,
+      [TYPE.TEXTURE_CUBEMAP]: 0,
+    };
+
+    // We need to assign every uniform no matter what.
+    for(let uniform_name of Object.keys(this.uniforms)) {
+      let uniform_info = this.uniforms[uniform_name];
+      
+      let expected_uniform_type = uniform_info.type;
+
+      if(!expected_uniform_type.startsWith('TEXTURE')) {
+        continue;
+      }
+
+      let texture = null;
+      
+      if(expected_uniform_type === TYPE.TEXTURE_2D) {
+        texture = this.renderer.getTexture('@fallback');
+      } else if(expected_uniform_type === TYPE.TEXTURE_CUBEMAP) {
+        texture = this.renderer.getTexture('@fallback-cubemap');
+      } else {
+        Logger.warn(`Unexpected texture type '${expected_uniform_type}' for uniform '${uniform_name}' in shader '${this.name}', ignoring`);
+        continue;
+      }
+      
+      if(uniform_name in uniforms) {
+        let uniform_texture = this.renderer.getTexture(uniforms[uniform_name].texture_name);
+        
+        if(uniform_texture.type === expected_uniform_type) {
+          texture = uniform_texture;
+        } else {
+          Logger.warn(`Texture '${uniform_texture.name}' for uniform '${uniform_name}' on shader '${this.name}' is wrong texture type (should be '${expected_uniform_type}', found '${uniform_texture.type}'), using fallback`);
+        }
+      } else {
+        //Logger.warn(`No texture given for '${uniform_name}' on shader '${this.name}', using fallback`);
+      }
+      
+      this.setTextureUniform(uniform_name, texture, texture_index[texture.type]++);
     }
   }
 
