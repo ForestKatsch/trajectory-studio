@@ -92,13 +92,15 @@ export default class Scene {
       return;
     }
 
+    //Logger.debug(`Scene is batched and sorted; drawing ${renderables.length} meshes...`);
+
     let renderables = this.batch(renderer);
 
-    //Logger.debug(`Scene is batched and sorted; drawing ${renderables.length} meshes...`);
-    
     for(let renderable of renderables) {
-      renderable.draw(renderer);
+      renderable.draw(renderer, false);
     }
+
+    //this.root.draw(renderer, true);
   }
   
   setUniform(name, value) {

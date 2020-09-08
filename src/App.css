@@ -2,7 +2,7 @@
 
 /* Define the global default variables up front. */
 :root {
-  --html-bg: hsl(220, 50%%, 5%);
+  --html-bg: hsl(220, 50%, 5%);
   
   --page-bg: hsl(220, 10%, 95%);
   --page-text-primary: hsl(220, 20%, 10%);
@@ -34,8 +34,6 @@
   --widget-active-glow: hsla(220, 0%, 100%, 0.9);
   
   font-family: 'Fira Mono', monospace;
-
-  user-select: none;
 }
 
 .App {

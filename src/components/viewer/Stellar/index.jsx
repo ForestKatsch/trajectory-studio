@@ -19,6 +19,7 @@ class StellarViewer extends React.Component {
     super(props);
     
     this.state = {
+      loaded: false,
       paused: false,
       
       use_anisotropy: true,
@@ -32,7 +33,9 @@ class StellarViewer extends React.Component {
       stats_draw_call_count: 0,
     };
 
+    this.handleRendererStateChanged = this.handleRendererStateChanged.bind(this);
     this.handleWindowResize = this.handleWindowResize.bind(this);
+    
     this.canvas = React.createRef();
     this.renderer = null;
   }
@@ -55,8 +58,19 @@ class StellarViewer extends React.Component {
     this.renderer.resize();
   }
 
+  handleRendererStateChanged(event) {
+    if(!this.renderer.isLoaded()) {
+      return;
+    }
+
+    this.setState((state, props) => ({
+      loaded: true
+    }));
+  }
+
   initRenderer() {
     try {
+      this.renderer.on('statechange', this.handleRendererStateChanged);
       this.renderer.init();
       this.renderer.viewer = this;
     } catch(e) {
@@ -98,12 +112,10 @@ class StellarViewer extends React.Component {
     }
     
     return (
-      <section className={`StellarViewer ${this.state.display_stats ? 'StellarViewer--stats-visible' : ''}`}>
+      <section className={`StellarViewer ${this.state.loaded ? 'StellarViewer--loaded' : ''}`}>
         <canvas ref={this.canvas}></canvas>
         {emptyState}
         <div className="StellarViewer__options">
-          <Switch label="Orbit Lines"></Switch>
-          <Switch label="Spacecraft Trajectories"></Switch>
           <Switch
             label="Pause Renderer"
             checked={this.state.paused}

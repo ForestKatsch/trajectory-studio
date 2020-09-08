@@ -88,13 +88,13 @@ export default class StellarRenderer extends Renderer {
     atmosphere_mesh.order = RENDER_ORDER.TRANSPARENT;
     
     atmosphere.scale = vec3.fromValues(1.1, 1.1, 1.1);
-    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / 1.1 / 2, 1 / 2, 3, 200));
+    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / 1.1 / 2, 1 / 2, 10, 60));
 
     let atmosphere_scatter_color = vec4.fromValues(10, 20, 40);
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 1 / 4);
     //vec4.pow(atmosphere_scatter_color, atmosphere_scatter_color, 4.0);
-    vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 4.0);
-    atmosphere_scatter_color[3] = 60;
+    vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 7.0);
+    atmosphere_scatter_color[3] = 10;
     
     atmosphere.setUniform('uAtmosphereRaleighScatter', atmosphere_scatter_color);
 
@@ -284,7 +284,7 @@ export default class StellarRenderer extends Renderer {
     //this.scene.uniforms.set('uStarPosition', vec3.fromValues(0, 50, -100));
     
     //quat.fromEuler(this.earth.rotation, Math.sin(now / 7) * 30, 0, Math.sin(now / 7) * 30);
-    quat.fromEuler(this.earth.rotation, 30, now * 3, 0);
+    quat.fromEuler(this.earth.rotation, 30, now * 0.5, 0);
     //quat.fromEuler(this.spinny.rotation, 0, 220, 0);
     //this.material.set('uColor', [Math.sin(Date.now() / 50), 0, 0]);
 

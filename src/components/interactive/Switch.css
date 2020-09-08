@@ -14,6 +14,8 @@
   min-width: 96px;
 
   color: var(--widget-inactive-text);
+
+  user-select: none;
 }
 
 .Switch__element {

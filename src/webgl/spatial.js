@@ -300,12 +300,18 @@ export default class Spatial {
     return renderables;
   }
 
-  draw(renderer) {
+  draw(renderer, recursive) {
     if(!this.enabled) {
       return;
     }
 
     this.callData('draw', renderer, this);
+
+    if(recursive) {
+      for(let child of this.children) {
+        child.draw(renderer, recursive);
+      }
+    }
   }
 
   setUniform(name, value) {

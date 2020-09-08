@@ -27,6 +27,8 @@ export default class Renderer extends Asset {
     this.canvas = canvas;
 
     this.options = {
+      max_anisotropy_level: 16,
+      scale: 1,
       ...(options ? options : {})
     };
     
@@ -181,6 +183,11 @@ export default class Renderer extends Asset {
 
     this.flagDirty();
 
+    this.applyOptions();
+  }
+
+  applyOptions() {
+    this.resize();
     this.applyTextureParameters();
   }
 
@@ -381,6 +388,8 @@ export default class Renderer extends Asset {
 
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
+
+    vec2.scale(this.size, this.size, this.options.scale);
 
     this.canvas.width = this.size[0] * this.dpi;
     this.canvas.height = this.size[1] * this.dpi;

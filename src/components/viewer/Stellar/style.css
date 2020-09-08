@@ -7,8 +7,16 @@
   min-width: 100%;
   min-height: 100%;
   object-fit: cover;
+
+  opacity: 0;
+
+  transition: opacity 0.5s ease-out;
 }
   
+.StellarViewer--loaded canvas {
+  opacity: 1;
+}
+
 .StellarViewer__options {
   background-color: var(--page-bg);
   color: var(--page-text-primary);
@@ -37,6 +45,7 @@
   list-style-type: none;
   height: 32px;
   line-height: 32px;
+  user-select: contain;
 }
 
   
