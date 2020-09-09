@@ -10,6 +10,7 @@ uniform mat4 uProjectionMatrix;
 uniform vec4 uCameraData;
 
 varying vec3 vPosition;
+varying vec3 vScreenPosition;
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
 varying vec3 vNormal;
@@ -23,4 +24,6 @@ void main() {
   gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aPosition, 1.0);
 
   gl_Position = depthBufferLogVert(gl_Position, 1.0, uCameraData.y);
+
+  vScreenPosition = gl_Position.xyz / gl_Position.w;
 }
