@@ -27,14 +27,15 @@ export default class OrreryRenderer extends Renderer {
 
     this.scene = new Scene();
 
-    this.createTexture('stellar-body-earth-landinfo')
-      .load('static/stellar/bodies/earth/earth.jpg')
+    this.createTexture('stellar-body-earth-landinfo-cube')
+      .loadCubemap('static/stellar/bodies/earth/landmass-{id}.jpg')
       .setParameters({
         wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
         anisotropy_level: 16
       });
-    this.createTexture('stellar-body-earth-color')
-      .load('static/stellar/bodies/earth/color.jpg')
+    
+    this.createTexture('stellar-body-earth-color-cubemap')
+      .loadCubemap('static/stellar/bodies/earth/color-{id}.jpg')
       .setParameters({
         wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
         anisotropy_level: 16
@@ -71,8 +72,8 @@ export default class OrreryRenderer extends Renderer {
     earth_material.set('uOceanColor', vec3.fromValues(0.02, 0.17, 0.3));
     earth_material.set('uNightColor', vec3.fromValues(0.8, 0.55, 0.4));
     
-    earth_material.set('uLandinfo', 'stellar-body-earth-landinfo');
-    earth_material.set('uTexture', 'stellar-body-earth-color');
+    earth_material.set('uLandinfoCube', 'stellar-body-earth-landinfo-cube');
+    earth_material.set('uColorCube', 'stellar-body-earth-color-cubemap');
     
     this.scene.root.add(earth);
     
@@ -283,7 +284,7 @@ export default class OrreryRenderer extends Renderer {
     //this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
     this.scene.setUniform('uStarPosition', vec3.fromValues(0, 300000000, 300000000));
     this.scene.setUniform('uStarColor', vec3.fromValues(1, 0.95, 0.9));
-    quat.fromEuler(this.earth.rotation, 30, now * 0.5, 0);
+    quat.fromEuler(this.earth.rotation, 0, now * 0.5, 0);
 
     this.paused = this.options.paused;
 

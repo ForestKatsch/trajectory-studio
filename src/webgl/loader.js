@@ -27,8 +27,8 @@ export class Asset extends EventEmitter {
     if(this.state === state) {
       return;
     }
-
-    //Logger.info(`Asset '${this.name}' state is moving from '${this.state}' to '${state}'`);
+    
+    Logger.info(`Asset '${this.name}' state is moving from '${this.state}' to '${state}'`);
     
     if(this.isDoneLoading() && !this.can_move_backwards) {
       Logger.warn(`Asset '${this.name}' state is moving from '${this.state}' to '${state}', but it's already loaded.`);

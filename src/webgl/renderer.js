@@ -269,6 +269,7 @@ export default class Renderer extends Asset {
 
   initTextures() {
     this.createTexture('@fallback').setFromColor(vec4.fromValues(1.0, 0.0, 1.0, 1.0));
+    this.createTexture('@fallback-cube').setFromColorCubemap(vec4.fromValues(1.0, 0.0, 1.0, 1.0));
     //fallback.setState(STATE.LOAD_COMPLETE);
   }
 

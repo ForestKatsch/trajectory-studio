@@ -12,9 +12,11 @@ uniform vec4 uCameraData;
 varying vec3 vPosition;
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
+varying vec3 vNormal;
 
 void main() {
   vPosition = aPosition;
+  vNormal = aNormal;
   vWorldPosition = (uWorldMatrix * vec4(aPosition, 1.0)).xyz;
   vWorldNormal = normalize((uWorldMatrix * vec4(aNormal, 0.0)).xyz);
   

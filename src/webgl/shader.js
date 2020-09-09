@@ -2,43 +2,6 @@
 import Logger from 'js-logger';
 
 export const TYPE = {
-  AUTO: 'AUTO',
-  
-  BOOL: 'BOOL',
-  
-  BYTE: 'BYTE',
-  UNSIGNED_BYTE: 'UNSIGNED_BYTE',
-  
-  SHORT: 'SHORT',
-  UNSIGNED_SHORT: 'UNSIGNED_SHORT',
-  
-  INT: 'INT',
-  UNSIGNED_INT: 'UNSIGNED_INT',
-  
-  FLOAT: 'FLOAT',
-  
-  FVEC2: 'FVEC2',
-  FVEC3: 'FVEC3',
-  FVEC4: 'FVEC4',
-  
-  IVEC2: 'IVEC2',
-  IVEC3: 'IVEC3',
-  IVEC4: 'IVEC4',
-  
-  BVEC2: 'BVEC2',
-  BVEC3: 'BVEC3',
-  BVEC4: 'BVEC4',
-  
-  MAT2: 'MAT2',
-  MAT3: 'MAT3',
-  MAT4: 'MAT4',
-
-  TEXTURE: 'TEXTURE',
-  TEXTURE_2D: 'TEXTURE_2D',
-  TEXTURE_CUBEMAP: 'TEXTURE_CUBEMAP',
-};
-
-export const GL_TYPE = {
   BOOL: 0x8B56,
   
   BYTE: 0x1400,
@@ -54,61 +17,36 @@ export const GL_TYPE = {
   
   FVEC2: 0x8B50,
   FVEC3: 0x8B51,
-  FVEC4: 0X8B52,
+  FVEC4: 0x8B52,
   
-  IVEC2: 0X8B53,
-  IVEC3: 0X8B54,
-  IVEC4: 0X8B55,
+  IVEC2: 0x8B53,
+  IVEC3: 0x8B54,
+  IVEC4: 0x8B55,
   
-  BVEC2: 0X8B57,
-  BVEC3: 0X8B58,
-  BVEC4: 0X8B59,
+  BVEC2: 0x8B57,
+  BVEC3: 0x8B58,
+  BVEC4: 0x8B59,
   
-  MAT2: 0X8B5A,
-  MAT3: 0X8B5B,
-  MAT4: 0X8B5C,
+  MAT2: 0x8B5A,
+  MAT3: 0x8B5B,
+  MAT4: 0x8B5C,
   
   TEXTURE: 0x1702,
-  TEXTURE_2D: 0X8B5E,
-  TEXTURE_CUBEMAP: 0X8B60
+  TEXTURE_2D: 0x0DE1,
+  TEXTURE_CUBE_MAP: 0x8513,
+
+  SAMPLER_2D: 0x8B5E,
+  SAMPLER_CUBE: 0x8B60,
 };
 
-/* eslint-disable no-useless-computed-key */
+export let FROM_GL_TYPE = {};
 
-export const FROM_GL_TYPE = {
-  [0x8B56]: TYPE.BOOL,
-  
-  [0x1400]: TYPE.BYTE,
-  [0x1401]: TYPE.UNSIGNED_BYTE,
-  
-  [0x1402]: TYPE.SHORT,
-  [0x1403]: TYPE.UNSIGNED_SHORT,
-  
-  [0x1404]: TYPE.INT,
-  [0x1405]: TYPE.UNSIGNED_INT,
-  
-  [0x1406]: TYPE.FLOAT,
-  
-  [0x8B50]: TYPE.FVEC2,
-  [0x8B51]: TYPE.FVEC3,
-  [0X8B52]: TYPE.FVEC4,
-  
-  [0X8B53]: TYPE.IVEC2,
-  [0X8B54]: TYPE.IVEC3,
-  [0X8B55]: TYPE.IVEC4,
-  
-  [0X8B57]: TYPE.BVEC2,
-  [0X8B58]: TYPE.BVEC3,
-  [0X8B59]: TYPE.BVEC4,
-  
-  [0X8B5A]: TYPE.MAT2,
-  [0X8B5B]: TYPE.MAT3,
-  [0X8B5C]: TYPE.MAT4,
-  
-  [0x1702]: TYPE.TEXTURE,
-  [0X8B5E]: TYPE.TEXTURE_2D,
-  [0X8B60]: TYPE.TEXTURE_CUBEMAP
-};
+for(let key of Object.keys(TYPE)) {
+  FROM_GL_TYPE[TYPE[key]] = key;
+}
+
+FROM_GL_TYPE[TYPE.SAMPLER_2D] = TYPE.TEXTURE_2D;
+FROM_GL_TYPE[TYPE.SAMPLER_CUBE] = TYPE.TEXTURE_CUBE_MAP;
 
 export class Uniforms {
   
@@ -246,12 +184,14 @@ export default class Shader {
     
     let attribute_count = gl.getProgramParameter(this.program, gl.ACTIVE_ATTRIBUTES);
     for(let i=0; i<attribute_count; i++) {
-      var attribute = gl.getActiveAttrib(this.program, i);
+      let attribute = gl.getActiveAttrib(this.program, i);
+
+      let type = FROM_GL_TYPE[attribute.type];
       
       this.attributes[attribute.name] = {
         location: gl.getAttribLocation(this.program, attribute.name),
         name: attribute.name,
-        type: FROM_GL_TYPE[attribute.type]
+        type: type
       };
     }
     
@@ -259,10 +199,12 @@ export default class Shader {
     for(let i=0; i<uniform_count; i++) {
       let uniform = gl.getActiveUniform(this.program, i);
       
+      let type = FROM_GL_TYPE[uniform.type];
+
       this.uniforms[uniform.name] = {
         location: gl.getUniformLocation(this.program, uniform.name),
         name: uniform.name,
-        type: FROM_GL_TYPE[uniform.type]
+        type: type
       };
     }
   }
@@ -358,17 +300,17 @@ export default class Shader {
     if(false) {
       let value_string = '?';
 
-      if(type.startsWith('FVEC') || type.startsWith('IVEC') || type.startsWith('VEC')) {
+      if(type >= TYPE.FVEC2 && type <= TYPE.BVEC4) {
         value_string = `(${value})`;
-      } else if(type.startsWith('MAT')) {
+      } else if(type >= TYPE.MAT2 && type <= TYPE.MAT4) {
         // TODO: split this out into separate functions.
-        if(type === 'MAT3') {
+        if(type === TYPE.MAT3) {
           value_string = `
 ${value[0]}, ${value[3]}, ${value[6]},
 ${value[1]}, ${value[4]}, ${value[7]},
 ${value[2]}, ${value[5]}, ${value[8]},
 `;
-        } else if(type === 'MAT4') {
+        } else if(type === TYPE.MAT4) {
           value_string = `
 ${value[0]}, ${value[4]}, ${value[8]}, ${value[12]},
 ${value[1]}, ${value[5]}, ${value[9]}, ${value[13]},
@@ -411,7 +353,7 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
     }
   }
 
-  // Given a uniform name, a`Texture` (see `texture.js`, and a texture index, assigns
+  // Given a uniform name, a `Texture` (see `texture.js`, and a texture index, assigns
   // the uniform.
   setTextureUniform(uniform_name, texture, index) {
     const gl = this.renderer.context;
@@ -420,7 +362,7 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
     //Logger.debug(`Assigning '${texture.name}' as index ${index} for uniform '${uniform_name}'`);
     
     gl.activeTexture(gl.TEXTURE0 + index);
-    gl.bindTexture(gl.TEXTURE_2D, texture.texture);
+    gl.bindTexture(texture.type, texture.texture);
     gl.uniform1i(location, index);
   }
   
@@ -445,7 +387,7 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
 
       type = this.detectUniformType(name, value, type);
 
-      if(type.startsWith(TYPE.TEXTURE)) {
+      if(type === TYPE.TEXTURE) {
         textures[name] = {
           uniform_name: name,
           texture_name: value
@@ -464,10 +406,7 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
   //
   // TODO: optimize this.
   setTextureUniforms(uniforms) {
-    let texture_index = {
-      [TYPE.TEXTURE_2D]: 0,
-      [TYPE.TEXTURE_CUBEMAP]: 0,
-    };
+    let texture_index = 0;
 
     // We need to assign every uniform no matter what.
     for(let uniform_name of Object.keys(this.uniforms)) {
@@ -475,7 +414,8 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
       
       let expected_uniform_type = uniform_info.type;
 
-      if(!expected_uniform_type.startsWith('TEXTURE')) {
+      if(expected_uniform_type !== TYPE.TEXTURE_2D &&
+         expected_uniform_type !== TYPE.TEXTURE_CUBE_MAP) {
         continue;
       }
 
@@ -483,8 +423,8 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
       
       if(expected_uniform_type === TYPE.TEXTURE_2D) {
         texture = this.renderer.getTexture('@fallback');
-      } else if(expected_uniform_type === TYPE.TEXTURE_CUBEMAP) {
-        texture = this.renderer.getTexture('@fallback-cubemap');
+      } else if(expected_uniform_type === TYPE.TEXTURE_CUBE_MAP) {
+        texture = this.renderer.getTexture('@fallback-cube');
       } else {
         Logger.warn(`Unexpected texture type '${expected_uniform_type}' for uniform '${uniform_name}' in shader '${this.name}', ignoring`);
         continue;
@@ -502,7 +442,7 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
         //Logger.warn(`No texture given for '${uniform_name}' on shader '${this.name}', using fallback`);
       }
       
-      this.setTextureUniform(uniform_name, texture, texture_index[texture.type]++);
+      this.setTextureUniform(uniform_name, texture, texture_index++);
     }
   }
 

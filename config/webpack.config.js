@@ -54,15 +54,21 @@ const sassModuleRegex = /\.module\.(scss|sass)$/;
 
 const shaderLoader = require('./shaderloader.js');
 
-const copyPatterns = [
-  {
-    from: 'src/components/viewer/Orrery/bodies/earth/{earth,color}.jpg',
+const copyPatterns = [];
+
+const fromBodies = [
+  'src/components/viewer/Orrery/bodies/earth/{color,landmass}-000[0-5].jpg'
+];
+
+for(let i of fromBodies) {
+  copyPatterns.push({
+    from: i,
     to: 'static/stellar/bodies/',
     transformPath(target, absolute) {
       return target.replace('src/components/viewer/Orrery/bodies/', '');
     }
-  }
-];
+  });
+}
 
 // This is the production and development configuration.
 // It is focused on developer experience, fast rebuilds, and a minimal bundle.

@@ -35,9 +35,9 @@ export default class Texture extends Asset {
     
     this.renderer = renderer;
 
-    this.type = TYPE.TEXTURE_2D;
+    this.type = null;
     
-    // HTML image.
+    // HTML image(s)
     this.image = null;
 
     // WebGL texture ID.
@@ -60,13 +60,13 @@ export default class Texture extends Asset {
     const gl = this.renderer.context;
     
     this.texture = gl.createTexture();
-    
-    gl.bindTexture(gl.TEXTURE_2D, this.texture);
-
-    this._setFromColor(vec4.fromValues(1, 0, 1, 1));
+    //this._setFromColor(vec4.fromValues(1, 0, 1, 1));
   }
   
-  _setFromColor(color) {
+  // `Color` is a vec4 with RGBA.
+  setFromColor(color) {
+    this.setFromColorInit(TYPE.TEXTURE_2D);
+    
     const gl = this.renderer.context;
     
     const format = gl.RGBA;
@@ -77,28 +77,56 @@ export default class Texture extends Asset {
     vec4.scale(color, color, 255);
     
     const data = new Uint8Array(color);
+
+    let type = this.getGLTextureType();
     
-    gl.texImage2D(this.getGLTextureType(), 0, format, width, height, 0, format, gl.UNSIGNED_BYTE, data);
+    gl.bindTexture(type, this.texture);
+    gl.texImage2D(type, 0, format, width, height, 0, format, gl.UNSIGNED_BYTE, data);
     
+    this.setState(STATE.LOAD_COMPLETE);
   }
 
-  // `Color` is a vec4 with RGBA.
-  setFromColor(color) {
+  setFromColorInit(type) {
+    this.type = type;
     this.setState(STATE.LOADING);
-    this._setFromColor(color);
+    
+    const gl = this.renderer.context;
+    gl.bindTexture(this.type, this.texture);
+  }
+  
+  setFromColorCubemap(color) {
+    this.setFromColorInit(TYPE.TEXTURE_CUBE_MAP);
+    
+    const gl = this.renderer.context;
+    
+    vec4.scale(color, color, 255);
+    
+    const data = new Uint8Array(color);
+
+    let type = this.getGLTextureType();
+    
+    const targets = [
+      gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+    ];
+
+    targets.forEach((target, index) => {
+      const level = 0;
+      const format = gl.RGB;
+      const type = gl.UNSIGNED_BYTE;
+      
+      gl.texImage2D(target, 0, format, 1, 1, 0, format, type, data);
+    });
+    
     this.setState(STATE.LOAD_COMPLETE);
   }
 
   getGLTextureType() {
-    const gl = this.renderer.context;
-    
-    switch(this.type) {
-    case TYPE.TEXTURE_2D:
-      return gl.TEXTURE_2D;
-    default:
-      Logger.warn(`Texture '${this.name}' has an unknown type '${this.type}'`);
-      return null;
-    }
+    return this.type;
   }
 
   deinit() {
@@ -113,7 +141,9 @@ export default class Texture extends Asset {
       return;
     }
     
-    Logger.info(`Fetching image '${url}' for '${this.name}'.`);
+    Logger.info(`Fetching image '${url}' for texture '${this.name}'.`);
+
+    this.type = TYPE.TEXTURE_2D;
     
     this.setState(STATE.LOADING);
     
@@ -125,6 +155,46 @@ export default class Texture extends Asset {
     return this;
   }
 
+  loadCubemap(url) {
+    if(typeof url !== typeof '') {
+      Logger.warn(`loadCubemap() must be called with a string URL (at the moment)`);
+    }
+
+    if(this.image !== null) {
+      Logger.warn(`Texture '${this.name}' already has an image assigned, skipping download of '${url}'.`);
+      return;
+    }
+    
+    let urls = [];
+
+    for(let i=0; i<6; i++) {
+      urls.push(url.replace('{id}', i.toString().padStart(4, '0')));
+    }
+
+    this.loadCubemapFaces(urls);
+
+    return this;
+  }
+
+  loadCubemapFaces(urls) {
+    this.type = TYPE.TEXTURE_CUBE_MAP;
+    
+    this.setState(STATE.LOADING);
+    
+    this.image = [];
+
+    for(let url of urls) {
+      Logger.info(`Fetching image '${url}' for cubemap '${this.name}'.`);
+      
+      let image = new Image();
+      image.onload = this.handleImageLoad.bind(this);
+      image.onerror = this.handleImageError.bind(this);
+      image.src = url;
+
+      this.image.push(image);
+    }
+  }
+
   setParameters(parameters) {
     this.parameters = {
       ...this.parameters,
@@ -132,32 +202,65 @@ export default class Texture extends Asset {
     };
 
     this.applyParameters();
+
+    return this;
   }
 
   // Assigns the image to WebGL.
   assignImage() {
-    Logger.info(`Assigning image '${this.name}' to WebGL texture.`);
-    
     const gl = this.renderer.context;
-    
-    const internalFormat = gl.RGB;
-    const srcFormat = gl.RGB;
-    const srcType = gl.UNSIGNED_BYTE;
-
     const type = this.getGLTextureType();
     
     gl.bindTexture(type, this.texture);
-    gl.texImage2D(type, 0, internalFormat, srcFormat, srcType, this.image);
+    
+    if(this.type === TYPE.TEXTURE_CUBE_MAP) {
+      this.assignCubemap();
+    } else {
+      this.assign2D();
+    }
 
     gl.generateMipmap(type);
-
+    
     this.applyParameters();
+  }
+
+  assign2D() {
+    const gl = this.renderer.context;
+    const type = this.getGLTextureType();
+    
+    const format = gl.RGB;
+    const srcType = gl.UNSIGNED_BYTE;
+
+    gl.texImage2D(type, 0, format, format, srcType, this.image);
+  }
+
+  assignCubemap() {
+    Logger.info(`Assigning image '${this.name}' to WebGL cubemap texture.`);
+    
+    const gl = this.renderer.context;
+    
+    const targets = [
+      gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+    ];
+
+    this.image.forEach((image, index) => {
+      const level = 0;
+      const format = gl.RGB;
+      const type = gl.UNSIGNED_BYTE;
+      
+      gl.texImage2D(targets[index], 0, format, format, type, image);
+    });
   }
 
   applyParameters() {
     const gl = this.renderer.context;
     const type = this.getGLTextureType();
-    
+
     gl.bindTexture(type, this.texture);
     
     gl.texParameteri(type, gl.TEXTURE_WRAP_S, this.parameters.wrap[0]);
@@ -196,14 +299,29 @@ export default class Texture extends Asset {
     this.applyParameters();
   }
 
-  handleImageLoad() {
-    this.assignImage();
+  handleImageLoad(e) {
+    e.target._loaded = true;
     
+    if(this.type === TYPE.TEXTURE_CUBE_MAP) {
+      for(let image of this.image) {
+        if(!image._loaded) {
+          return;
+        }
+      }
+    }
+
+    if(this.state === STATE.LOAD_ERROR) {
+      return;
+    }
+    
+    this.assignImage();
+
     this.setState(STATE.LOAD_COMPLETE);
   }
 
   handleImageError(e) {
-    Logger.warn(`Image '${this.image.src}' could not be fetched.`, e);
+    Logger.warn(`Image '${e.target.src}' could not be fetched.`, e);
+    
     this.setState(STATE.LOAD_ERROR);
   }
 }
