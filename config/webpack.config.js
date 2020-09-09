@@ -57,7 +57,7 @@ const shaderLoader = require('./shaderloader.js');
 const copyPatterns = [];
 
 const fromBodies = [
-  'src/components/viewer/Orrery/bodies/earth/{color,landinfo,normal}-000[0-5].jpg'
+  'src/viewer/Orrery/bodies/earth/{color,landinfo,normal}-000[0-5].jpg'
 ];
 
 for(let i of fromBodies) {
@@ -65,7 +65,7 @@ for(let i of fromBodies) {
     from: i,
     to: 'static/stellar/bodies/',
     transformPath(target, absolute) {
-      return target.replace('src/components/viewer/Orrery/bodies/', '');
+      return target.replace('src/viewer/Orrery/bodies/', '');
     }
   });
 }

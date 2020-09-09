@@ -1,5 +1,5 @@
 
-#import "../../../../webgl/shaders/depth.glsl";
+#import "../../../webgl/shaders/depth.glsl";
 
 attribute vec3 aPosition;
 attribute vec3 aNormal;

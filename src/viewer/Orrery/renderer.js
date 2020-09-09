@@ -1,11 +1,11 @@
 
 import {vec3, vec4, quat} from 'gl-matrix';
 
-import Renderer from '../../../webgl/renderer.js';
-import Scene, {RENDER_ORDER} from '../../../webgl/scene.js';
-import Material, {BLEND, DEPTH} from '../../../webgl/material.js';
-import {WRAP} from '../../../webgl/texture.js';
-import Spatial, {MeshData, CameraData} from '../../../webgl/spatial.js';
+import Renderer from '../../webgl/renderer.js';
+import Scene, {RENDER_ORDER} from '../../webgl/scene.js';
+import Material, {BLEND, DEPTH} from '../../webgl/material.js';
+import {WRAP} from '../../webgl/texture.js';
+import Spatial, {MeshData, CameraData} from '../../webgl/spatial.js';
 
 import default_vert from './shaders/default.vert';
 

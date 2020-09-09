@@ -6,10 +6,10 @@ import Logger from 'js-logger';
 
 import OrreryRenderer from './renderer.js';
 
-import EmptyState from '../../display/Empty.jsx';
+import EmptyState from '../../components/display/Empty.jsx';
 
-import Switch from '../../interactive/Switch.jsx';
-import CircularProgress from '../../progress/Circular.jsx';
+import Switch from '../../components/interactive/Switch.jsx';
+import CircularProgress from '../../components/progress/Circular.jsx';
 
 import './style.css';
 
