@@ -13,6 +13,7 @@ uniform samplerCube uColorCube;
 
 uniform mat4 uViewMatrix_i;
 uniform mat4 uWorldMatrix;
+uniform mat4 uWorldMatrix_i;
 
 varying vec3 vPosition;
 varying vec3 vScreenPosition;
@@ -71,9 +72,14 @@ void main() {
 
   color = diffuse + specular + night;
 
-  vec3 cloud_color = vec3(1.0) * pow(clamp(star_exposure, 0.0, 1.0), 0.75);//cloud_cover;
+  vec3 cloud_color = vec3(1.0) * pow(clamp(star_exposure, 0.0, 1.0), 0.6);//cloud_cover;
 
-  //color = mix(color, cloud_color, t_landinfo.b);
+  color = mix(color, vec3(0.0), t_landinfo.b);
+  
+  vec3 cloud_shadow_coord = normalize(vNormal + normalize((uWorldMatrix_i * vec4(star_direction, 0.0)).xyz) * -0.01);
+  float cloudshadow = textureCube(uLandinfoCube, cloud_shadow_coord).b;
+
+  color = mix(color, cloud_color, pow(cloudshadow, 0.75));
   
   gl_FragColor = vec4(color, 1.0);
 }
