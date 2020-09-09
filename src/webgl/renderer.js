@@ -482,6 +482,10 @@ export default class Renderer extends Asset {
       return false;
     }
 
+    if(!this.isLoaded()) {
+      return false;
+    }
+
     return true;
   }
 

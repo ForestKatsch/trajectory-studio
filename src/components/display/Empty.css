@@ -21,7 +21,7 @@
 
   padding: 16px;
 
-  background-color: var(--page-1-bg);
+  background-color: var(--bg);
   border-radius: var(--container-radius);
 }
 
@@ -34,12 +34,11 @@
   font-weight: bold;
 }
 
-.EmptyState.variant-dark .box {
+.EmptyState.App--theme-dark .box {
   background-color: transparent;
-  color: var(--page-text-primary);
+  color: var(--text-primary);
 }
 
-.EmptyState.variant-dark .box h2 {
-  color: var(--page-text-secondary);
+.EmptyState.App--theme-dark .box h2 {
+  color: var(--text-secondary);
 }
-

@@ -57,7 +57,7 @@ float densityAtPoint(vec3 position) {
   return densityAtAltitude(altitude);
 }
 
-const int OPTICAL_DEPTH_STEPS = 6;
+const int OPTICAL_DEPTH_STEPS = 5;
 float atmosphereOpticalDepth(vec3 position, vec3 direction, float ray_length) {
   vec3 point = position;
   float step_size = ray_length / float(OPTICAL_DEPTH_STEPS - 1);
@@ -86,7 +86,7 @@ vec3 atmosphereColor(vec3 position, vec3 direction, vec3 star_direction) {
   vec4 planet_ray = raySphereDistance(position, direction, planet_radius);
 
   if(planet_ray.y > 0.0) {
-    ray_length = (planet_ray.x - atmosphere_ray.x) * 0.999;
+    ray_length = (planet_ray.x - atmosphere_ray.x) * 0.9;
   }
 
   // The total atmosphere color at this point.

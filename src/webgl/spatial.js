@@ -179,6 +179,8 @@ export class CameraData extends SpatialData {
     //mat4.ortho(this.projection_matrix, -10, 10, -10, 10, -10, 10);
 
     this.uniforms.set('uProjectionMatrix', this.projection_matrix);
+    
+    this.uniforms.set('uCameraData', [this.near, this.far, 0, 0]);
   }
 
 }

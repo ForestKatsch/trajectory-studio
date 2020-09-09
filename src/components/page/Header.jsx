@@ -5,8 +5,8 @@ import './Header.css';
 
 function PageHeader() {
   return (
-    <header className="PageHeader">
-      <h1>Trajectory Viewer</h1>
+    <header className="PageHeader App--theme-light">
+      <h1>Orrery</h1>
     </header>
   );
 }

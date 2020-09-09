@@ -9,6 +9,19 @@ import Logger from 'js-logger';
 Logger.useDefaults();
 Logger.setLevel(Logger.TRACE);
 
+var consoleHandler = Logger.createDefaultHandler();
+var myHandler = (messages, context) => {
+  if(context.level.value > Logger.DEBUG.value) {
+	  //alert([...messages].join(', '))
+  }
+};
+
+Logger.setHandler(function (messages, context) {
+	consoleHandler(messages, context);
+	myHandler(messages, context);
+});
+
+
 ReactDOM.render(
   <React.StrictMode>
     <App />

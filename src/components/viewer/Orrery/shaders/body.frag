@@ -1,4 +1,4 @@
-precision mediump float;
+precision highp float;
 
 uniform vec3 uLandColor;
 uniform vec3 uOceanColor;
@@ -17,12 +17,6 @@ varying vec3 vViewNormal;
 
 const float PI = 3.141592653;
 const float PI_2 = 6.28318530;
-
-float smoothstep_inv(float y) {
-  if(y<=0.0)return 0.0;
-  if(y>=1.0)return 1.0;
-  return 0.5-sin(asin(1.0-2.0*y)/3.0);
-}
 
 void main() {
   vec3 camera_position = uViewMatrix_i[3].xyz;
@@ -61,6 +55,6 @@ void main() {
   vec3 cloud_color = vec3(1.0) * pow(clamp(star_exposure, 0.0, 1.0), 0.75);//cloud_cover;
 
   color = mix(color, cloud_color, cloud_cover);
-
+  
   gl_FragColor = vec4(color, 1.0);
 }

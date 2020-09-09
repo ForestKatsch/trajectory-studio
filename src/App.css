@@ -4,8 +4,12 @@
 :root {
   --html-bg: hsl(220, 50%, 5%);
   
-  --bg: hsl(220, 10%, 95%);
-  --text-primary: hsl(220, 20%, 10%);
+  font-family: 'Fira Mono', monospace;
+}
+
+:root, .App--theme-dark {
+  --bg: hsl(220, 10%, 15%);
+  --text-primary: hsl(220, 20%, 90%);
   --text-secondary: hsl(220, 10%, 60%);
   --icon: hsl(220, 10%, 100%);
 
@@ -33,8 +37,6 @@
   
   --widget-inactive-glow: hsla(220, 0%, 100%, 0.7);
   --widget-active-glow: hsla(220, 0%, 100%, 0.9);
-  
-  font-family: 'Fira Mono', monospace;
 }
 
 .App {
@@ -45,8 +47,9 @@
   color: var(--text-primary);
 
   font-size: 12px;
+}
 
-  /*(
+.App--theme-light {
   --bg: hsl(220, 10%, 95%);
   --text-primary: hsl(220, 20%, 10%);
   --text-secondary: hsl(220, 10%, 60%);
@@ -76,8 +79,6 @@
   
   --widget-inactive-glow: hsla(220, 0%, 100%, 0.7);
   --widget-active-glow: hsla(220, 0%, 100%, 0.9);
-*/
-  
 }
 
 .OrreryViewer {

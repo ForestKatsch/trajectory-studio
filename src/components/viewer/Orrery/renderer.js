@@ -7,14 +7,13 @@ import Material, {BLEND, DEPTH} from '../../../webgl/material.js';
 import {WRAP} from '../../../webgl/texture.js';
 import Spatial, {MeshData, CameraData} from '../../../webgl/spatial.js';
 
-import default_vert from './default.vert';
+import default_vert from './shaders/default.vert';
 //import default_frag from './default.frag';
 
-import star_frag from './star.frag';
-import body_frag from './body.frag';
+import star_frag from './shaders/star.frag';
+import body_frag from './shaders/body.frag';
 
-import atmosphere_vert from './atmosphere.vert';
-import atmosphere_frag from './atmosphere.frag';
+import atmosphere_frag from './shaders/atmosphere.frag';
 
 export default class OrreryRenderer extends Renderer {
 
@@ -46,7 +45,7 @@ export default class OrreryRenderer extends Renderer {
     this.createShader('body', default_vert, body_frag);
     this.createShader('star', default_vert, star_frag);
     
-    let shader = this.createShader('atmosphere', atmosphere_vert, atmosphere_frag);
+    let shader = this.createShader('atmosphere', default_vert, atmosphere_frag);
 
     this.scene.uniforms.set('uColor', vec3.fromValues(1, 1, 1));
     
@@ -67,6 +66,10 @@ export default class OrreryRenderer extends Renderer {
     let earth = new Spatial(this.scene, 'earth');
     earth.setData(new MeshData('quadsphere', earth_material));
 
+    let earth_diameter = 12742 * 1000;
+    
+    earth.scale = vec3.fromValues(earth_diameter, earth_diameter, earth_diameter);
+
     earth_material.set('uOceanColor', vec3.fromValues(0.02, 0.17, 0.3));
     earth_material.set('uNightColor', vec3.fromValues(0.8, 0.55, 0.4));
     
@@ -86,9 +89,11 @@ export default class OrreryRenderer extends Renderer {
     let atmosphere_mesh = new MeshData('atmosphere', atmosphere_material)
     atmosphere.setData(atmosphere_mesh);
     atmosphere_mesh.order = RENDER_ORDER.TRANSPARENT;
+
+    let atmosphere_diameter = 1.1;
     
-    atmosphere.scale = vec3.fromValues(1.1, 1.1, 1.1);
-    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / 1.1 / 2, 1 / 2, 10, 60));
+    atmosphere.scale = vec3.fromValues(atmosphere_diameter, atmosphere_diameter, atmosphere_diameter);
+    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / atmosphere_diameter / 2, 1 / 2, 10, 60));
 
     let atmosphere_scatter_color = vec4.fromValues(10, 20, 40);
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 1 / 4);
@@ -122,9 +127,10 @@ export default class OrreryRenderer extends Renderer {
 
   createCamera() {
     this.camera = new Spatial(this.scene, 'camera');
-    this.camera.setData(new CameraData(60, 0.01, 10000));
+    this.camera.setData(new CameraData(40, 1, 7500000000*1000));
 
-    this.camera.position = vec3.fromValues(0, 0, 2);
+    //this.camera.position = vec3.fromValues(0, 0, this.earth.scale[0] * 1.5);
+    this.camera.position = vec3.fromValues(0, 0, 38440*1000);
 
     this.scene.root.add(this.camera);
     this.scene.setCamera(this.camera);
@@ -272,9 +278,12 @@ export default class OrreryRenderer extends Renderer {
     let now = Date.now() / 100;
 
     this.atmosphere.setEnabled(this.options.display_atmospheres);
+
+    let scale = 1;
+    this.scene.scale = vec3.fromValues(1 / scale, 1 / scale, 1 / scale);
     
     //this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
-    this.scene.setUniform('uStarPosition', vec3.fromValues(0, 30, 30));
+    this.scene.setUniform('uStarPosition', vec3.fromValues(0, 300000000, 300000000));
     quat.fromEuler(this.earth.rotation, 30, now * 0.5, 0);
 
     this.paused = this.options.paused;

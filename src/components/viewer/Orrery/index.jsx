@@ -5,6 +5,7 @@ import AnimateHeight from 'react-animate-height';
 import Logger from 'js-logger';
 
 import OrreryRenderer from './renderer.js';
+
 import EmptyState from '../../display/Empty.jsx';
 
 import Switch from '../../interactive/Switch.jsx';
@@ -31,6 +32,7 @@ class OrreryViewer extends React.Component {
       stats_fps: 0,
       stats_vertex_count: 0,
       stats_draw_call_count: 0,
+      stats_frame_count: 0,
     };
 
     this.handleRendererStateChanged = this.handleRendererStateChanged.bind(this);
@@ -103,6 +105,12 @@ class OrreryViewer extends React.Component {
       emptyState = (
         <EmptyState variant="dark" title="Something went wrong" message={this.state.errorMessage}></EmptyState>
       );
+    } else {
+      emptyState = (
+        <div className="OrreryViewer__loading">
+          <CircularProgress size={64} />
+        </div>
+      );
     }
 
     if(this.renderer) {
@@ -114,11 +122,8 @@ class OrreryViewer extends React.Component {
     return (
       <section className={`OrreryViewer ${this.state.loaded ? 'OrreryViewer--loaded' : ''}`}>
         <canvas ref={this.canvas}></canvas>
-        <div className="OrreryViewer__loading">
-          <CircularProgress size={64} />
-        </div>
         {emptyState}
-        <div className="OrreryViewer__options">
+        <div className="OrreryViewer__options App--theme-light">
           <Switch
             label="Pause Renderer"
             checked={this.state.paused}
