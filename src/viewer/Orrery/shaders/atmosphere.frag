@@ -27,5 +27,5 @@ void main() {
   vec3 pos_cameraModel = (uWorldMatrix_i * vec4(uViewMatrix_i[3].xyz, 1.0)).xyz;
   //vec3 view_direction = normalize((uWorldMatrix_i * vec4(vWorldPosition - camera_position, 0.0)).xyz);
   
-  gl_FragColor = vec4(atmosphereColor(pos_cameraModel, dir_viewModel, dir_starModel, uStarColor, uAtmosphereParameters, uAtmosphereRaleighScatter), 1.0);
+  gl_FragColor = vec4(atmosphereSkyColor(pos_cameraModel, dir_viewModel, dir_starModel, uStarColor, uAtmosphereParameters, uAtmosphereRaleighScatter), 1.0);
 }

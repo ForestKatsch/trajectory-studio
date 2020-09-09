@@ -7,6 +7,9 @@ uniform vec3 uNightColor;
 uniform vec3 uStarPosition;
 uniform vec3 uStarColor;
 
+uniform vec4 uAtmosphereParameters;
+uniform vec4 uAtmosphereRaleighScatter;
+
 uniform samplerCube uLandinfoCube;
 uniform samplerCube uNormalCube;
 uniform samplerCube uColorCube;
@@ -26,6 +29,7 @@ const float PI = 3.141592653;
 const float PI_2 = 6.28318530;
 
 #import "./include.glsl";
+#import "./atmosphere.glsl";
 
 void main() {
   vec3 dir_view = getDirectionView();
@@ -83,8 +87,16 @@ void main() {
 
   // And finally, mix in the clouds on top.
   mat_color = mix(mat_color, color_cloud, frac_cloudCover);
-  
-  gl_FragColor = vec4(mat_color, 1.0);
 
-  //gl_FragColor = vec4(vec3(1.0) * color_starLight, 1.0);
+  // Get the model-space directions for the view and star.
+  vec3 dir_starModel = worldToModelDirection(getDirectionStar());
+  vec3 dir_viewModel = worldToModelDirection(getDirectionView());
+
+  // ANd get the model-space position of the camera.
+  vec3 pos_cameraModel = (uWorldMatrix_i * vec4(uViewMatrix_i[3].xyz, 1.0)).xyz;
+
+  vec3 mat_atmosphere = atmospherePlanetColor(pos_cameraModel, dir_viewModel, dir_starModel, uStarColor, uAtmosphereParameters, uAtmosphereRaleighScatter, 0.6);
+    
+  gl_FragColor = vec4(mat_atmosphere + mat_color, 1.0);
+
 }

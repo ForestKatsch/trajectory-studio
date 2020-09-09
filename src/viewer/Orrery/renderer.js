@@ -102,7 +102,6 @@ export default class OrreryRenderer extends Renderer {
     let atmosphere_diameter = 1.1;
     
     atmosphere.scale = vec3.fromValues(atmosphere_diameter, atmosphere_diameter, atmosphere_diameter);
-    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / atmosphere_diameter / 2, 1 / 2, 20, 150));
 
     let atmosphere_scatter_color = vec4.fromValues(10, 20, 40);
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 1 / 4);
@@ -110,7 +109,11 @@ export default class OrreryRenderer extends Renderer {
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 7.0);
     atmosphere_scatter_color[3] = 10;
     
+    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / atmosphere_diameter / 2, 1 / 2, 20, 150));
     atmosphere.setUniform('uAtmosphereRaleighScatter', atmosphere_scatter_color);
+
+    earth.setUniform('uAtmosphereParameters', vec4.fromValues(1 / 2, atmosphere_diameter / 2, 20, 150));
+    earth.setUniform('uAtmosphereRaleighScatter', atmosphere_scatter_color);
 
     this.atmosphere = atmosphere;
 
@@ -149,7 +152,7 @@ export default class OrreryRenderer extends Renderer {
   
   createQuadspheres() {
     this.createQuadsphere('quadsphere', 32);
-    this.createQuadsphere('atmosphere', 8);
+    this.createQuadsphere('atmosphere', 8, true);
   }
 
   // TODO: support triangle strip generation with degenerate triangles.
