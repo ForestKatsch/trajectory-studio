@@ -52,6 +52,8 @@ const cssModuleRegex = /\.module\.css$/;
 const sassRegex = /\.(scss|sass)$/;
 const sassModuleRegex = /\.module\.(scss|sass)$/;
 
+const shaderLoader = require('./shaderloader.js');
+
 const copyPatterns = [
   {
     from: 'src/components/viewer/Orrery/bodies/earth/{earth,color}.jpg',
@@ -362,10 +364,10 @@ module.exports = function(webpackEnv) {
           // back to the "file" loader at the end of the loader list.
           oneOf: [
             {
-              test: /\.(frag|vert)$/,
+              test: /\.(frag|vert|glsl)$/,
               use: [
                 require.resolve('raw-loader'),
-                require.resolve('glslify-loader'),
+                require.resolve('./shaderloader.js'),
               ]
             },
 

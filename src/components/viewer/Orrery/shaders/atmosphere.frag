@@ -1,7 +1,9 @@
 precision highp float;
 
 uniform vec3 uColor;
+
 uniform vec3 uStarPosition;
+uniform vec3 uStarColor;
 
 // X = planet radius; Y = atmosphere radius; Z = atmosphere power; W = mie strength
 uniform vec4 uAtmosphereParameters;
@@ -120,7 +122,7 @@ vec3 atmosphereColor(vec3 position, vec3 direction, vec3 star_direction) {
     // Mie scattering. Essentially a power curve when we're between the viewer and the sun.
     float mie = uAtmosphereParameters.w * pow(max(dot(star_direction, direction), 0.0), uAtmosphereRaleighScatter.w);
     
-    vec3 transmittance = exp(-(star_ray_optical_depth + view_ray_optical_depth) * uAtmosphereRaleighScatter.rgb) * star_exposure;
+    vec3 transmittance = exp(-(star_ray_optical_depth + view_ray_optical_depth) * uAtmosphereRaleighScatter.rgb) * star_exposure * uStarColor;
 
     color += densityAtPoint(point) * transmittance * uAtmosphereRaleighScatter.rgb * step_size;
     color += mie * densityAtPoint(point) * transmittance * step_size;

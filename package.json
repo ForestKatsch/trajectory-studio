@@ -147,9 +147,9 @@
   },
   "devDependencies": {
     "copy-webpack-plugin": "^6.1.0",
-    "glslify-loader": "^2.0.0",
     "raw-loader": "^4.0.1",
     "react-animate-height": "^2.0.23",
-    "svg-inline-loader": "^0.8.2"
+    "svg-inline-loader": "^0.8.2",
+    "webpack-glsl-loader": "^1.0.1"
   }
 }

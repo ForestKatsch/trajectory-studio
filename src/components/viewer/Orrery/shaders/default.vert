@@ -1,5 +1,5 @@
 
-#pragma glslify: depth_buffer_log_vert = require('../../../../webgl/shaders/depth.glsl')
+#import "../../../../webgl/shaders/depth.glsl";
 
 attribute vec3 aPosition;
 attribute vec3 aNormal;
@@ -20,5 +20,5 @@ void main() {
   
   gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aPosition, 1.0);
 
-  gl_Position = depth_buffer_log_vert(gl_Position, 1.0, uCameraData.y);
+  gl_Position = depthBufferLogVert(gl_Position, 1.0, uCameraData.y);
 }

@@ -3,7 +3,9 @@ precision highp float;
 uniform vec3 uLandColor;
 uniform vec3 uOceanColor;
 uniform vec3 uNightColor;
+
 uniform vec3 uStarPosition;
+uniform vec3 uStarColor;
 
 uniform sampler2D uTexture;
 uniform sampler2D uLandinfo;
@@ -18,13 +20,14 @@ varying vec3 vViewNormal;
 const float PI = 3.141592653;
 const float PI_2 = 6.28318530;
 
+#import "./include.glsl";
+
 void main() {
-  vec3 camera_position = uViewMatrix_i[3].xyz;
-  vec3 view_direction = normalize(vWorldPosition - camera_position);
-  vec3 star_direction = normalize(uStarPosition - vWorldPosition);
+  vec3 view_direction = getViewDirection();
+  vec3 star_direction = getStarDirection();
   
   float star_exposure = dot(vWorldNormal, star_direction);
-  float star_brightness = pow(clamp(star_exposure, 0.0, 1.0), 1.0);
+  vec3 star_brightness = pow(clamp(star_exposure, 0.0, 1.0), 1.0) * uStarColor;
   star_brightness = star_brightness * 0.95 + 0.05;
 
   float len = sqrt(pow(vPosition.x, 2.0) + pow(vPosition.z, 2.0));

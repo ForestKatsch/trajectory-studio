@@ -8,10 +8,9 @@ import {WRAP} from '../../../webgl/texture.js';
 import Spatial, {MeshData, CameraData} from '../../../webgl/spatial.js';
 
 import default_vert from './shaders/default.vert';
-//import default_frag from './default.frag';
 
 import star_frag from './shaders/star.frag';
-import body_frag from './shaders/body.frag';
+import earth_frag from './shaders/earth.frag';
 
 import atmosphere_frag from './shaders/atmosphere.frag';
 
@@ -41,8 +40,7 @@ export default class OrreryRenderer extends Renderer {
         anisotropy_level: 16
       });
 
-    //this.createShader('default', default_vert, default_frag);
-    this.createShader('body', default_vert, body_frag);
+    this.createShader('earth', default_vert, earth_frag);
     this.createShader('star', default_vert, star_frag);
     
     let shader = this.createShader('atmosphere', default_vert, atmosphere_frag);
@@ -61,7 +59,7 @@ export default class OrreryRenderer extends Renderer {
   }
 
   createPlanet() {
-    let earth_material = new Material(this.scene, 'body');
+    let earth_material = new Material(this.scene, 'earth');
     
     let earth = new Spatial(this.scene, 'earth');
     earth.setData(new MeshData('quadsphere', earth_material));
@@ -284,6 +282,7 @@ export default class OrreryRenderer extends Renderer {
     
     //this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) *100, 20, Math.cos(now / 10.0) *100));
     this.scene.setUniform('uStarPosition', vec3.fromValues(0, 300000000, 300000000));
+    this.scene.setUniform('uStarColor', vec3.fromValues(1, 0.95, 0.9));
     quat.fromEuler(this.earth.rotation, 30, now * 0.5, 0);
 
     this.paused = this.options.paused;
