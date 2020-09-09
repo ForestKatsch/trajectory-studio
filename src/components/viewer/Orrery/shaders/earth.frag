@@ -38,7 +38,7 @@ void main() {
   vec3 dir_worldNormal = modelToWorldDirection(normalFromCubemap(uNormalCube, coord_cubemap));
 
   // This special function ensures that the normal map doesn't have mountains lit up if they're behind the body.
-  float frac_starExposure = min(dot(dir_worldNormal, dir_star), dot(vWorldNormal, dir_star));
+  float frac_starExposure = min(dot(dir_worldNormal, dir_star), pow(dot(vWorldNormal, dir_star), 0.2));
 
   // The dark side of the planet will be this bright, as a fraction of full brightness.
   float frac_brightnessBoost = 0.1;
@@ -57,9 +57,10 @@ void main() {
   float frac_land = tex_landinfo.r;
   float frac_nightLights = tex_landinfo.g;
   float frac_cloudCover = textureCube(uLandinfoCube, distortCubemapTexture(coord_cubemap, dir_view, -frac_cloudAltitude)).b;
+  
+  vec3 color_albedo = tex_color;
 
-  vec3 color_albedo = mix(uOceanColor, tex_color, frac_land);
-
+  // The diffuse component of this pixel.
   vec3 mat_diffuse = color_albedo * color_starLight;
 
   float frac_specularPower = 10.0;
@@ -79,10 +80,11 @@ void main() {
   
   // Mix in the shadow color.
   mat_color = mix(mat_color, vec3(0.0), frac_cloudShadow);
-  
+
+  // And finally, mix in the clouds on top.
   mat_color = mix(mat_color, color_cloud, frac_cloudCover);
   
-  //color = mix(color, cloud_color, pow(cloudshadow, 0.75));
-  
   gl_FragColor = vec4(mat_color, 1.0);
+
+  //gl_FragColor = vec4(vec3(1.0) * color_starLight, 1.0);
 }

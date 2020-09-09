@@ -9,7 +9,7 @@ vec3 getDirectionStar() {
 }
 
 vec3 normalFromCubemap(samplerCube sampler, vec3 coordinates) {
-  return textureCube(uNormalCube, coordinates).rgb * 2.0 - 1.0;
+  return textureCube(sampler, coordinates).rgb * 2.0 - 1.0;
 }
 
 vec3 modelToWorldDirection(vec3 normal) {
