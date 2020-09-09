@@ -59,8 +59,6 @@ module.exports = function(source) {
       return cb(err);
     }
 
-    console.log(bld)
-
     cb(null, bld);
   });
 };

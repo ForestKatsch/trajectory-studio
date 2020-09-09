@@ -1,0 +1,40 @@
+{
+  "files": {
+    "main.css": "/static/css/main.1ed7838f.chunk.css",
+    "main.js": "/static/js/main.326efe5f.chunk.js",
+    "main.js.map": "/static/js/main.326efe5f.chunk.js.map",
+    "runtime-main.js": "/static/js/runtime-main.3bf611f4.js",
+    "runtime-main.js.map": "/static/js/runtime-main.3bf611f4.js.map",
+    "static/js/2.97adea28.chunk.js": "/static/js/2.97adea28.chunk.js",
+    "static/js/2.97adea28.chunk.js.map": "/static/js/2.97adea28.chunk.js.map",
+    "index.html": "/index.html",
+    "precache-manifest.63c06a4340b674b36d3d012b88363099.js": "/precache-manifest.63c06a4340b674b36d3d012b88363099.js",
+    "service-worker.js": "/service-worker.js",
+    "static/css/main.1ed7838f.chunk.css.map": "/static/css/main.1ed7838f.chunk.css.map",
+    "static/js/2.97adea28.chunk.js.LICENSE.txt": "/static/js/2.97adea28.chunk.js.LICENSE.txt",
+    "static/stellar/bodies/earth/color-0000.jpg": "/static/stellar/bodies/earth/color-0000.jpg",
+    "static/stellar/bodies/earth/color-0001.jpg": "/static/stellar/bodies/earth/color-0001.jpg",
+    "static/stellar/bodies/earth/color-0002.jpg": "/static/stellar/bodies/earth/color-0002.jpg",
+    "static/stellar/bodies/earth/color-0003.jpg": "/static/stellar/bodies/earth/color-0003.jpg",
+    "static/stellar/bodies/earth/color-0004.jpg": "/static/stellar/bodies/earth/color-0004.jpg",
+    "static/stellar/bodies/earth/color-0005.jpg": "/static/stellar/bodies/earth/color-0005.jpg",
+    "static/stellar/bodies/earth/landinfo-0000.jpg": "/static/stellar/bodies/earth/landinfo-0000.jpg",
+    "static/stellar/bodies/earth/landinfo-0001.jpg": "/static/stellar/bodies/earth/landinfo-0001.jpg",
+    "static/stellar/bodies/earth/landinfo-0002.jpg": "/static/stellar/bodies/earth/landinfo-0002.jpg",
+    "static/stellar/bodies/earth/landinfo-0003.jpg": "/static/stellar/bodies/earth/landinfo-0003.jpg",
+    "static/stellar/bodies/earth/landinfo-0004.jpg": "/static/stellar/bodies/earth/landinfo-0004.jpg",
+    "static/stellar/bodies/earth/landinfo-0005.jpg": "/static/stellar/bodies/earth/landinfo-0005.jpg",
+    "static/stellar/bodies/earth/normal-0000.jpg": "/static/stellar/bodies/earth/normal-0000.jpg",
+    "static/stellar/bodies/earth/normal-0001.jpg": "/static/stellar/bodies/earth/normal-0001.jpg",
+    "static/stellar/bodies/earth/normal-0002.jpg": "/static/stellar/bodies/earth/normal-0002.jpg",
+    "static/stellar/bodies/earth/normal-0003.jpg": "/static/stellar/bodies/earth/normal-0003.jpg",
+    "static/stellar/bodies/earth/normal-0004.jpg": "/static/stellar/bodies/earth/normal-0004.jpg",
+    "static/stellar/bodies/earth/normal-0005.jpg": "/static/stellar/bodies/earth/normal-0005.jpg"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.3bf611f4.js",
+    "static/js/2.97adea28.chunk.js",
+    "static/css/main.1ed7838f.chunk.css",
+    "static/js/main.326efe5f.chunk.js"
+  ]
+}
