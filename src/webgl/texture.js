@@ -145,8 +145,6 @@ export default class Texture extends Asset {
     
     const data = new Uint8Array(color);
 
-    let type = this.getGLTextureType();
-    
     const targets = [
       gl.TEXTURE_CUBE_MAP_POSITIVE_X,
       gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -335,7 +333,6 @@ export default class Texture extends Asset {
     ];
 
     this.images.forEach((info) => {
-      const level = 0;
       const format = gl.RGB;
       const type = gl.UNSIGNED_BYTE;
       

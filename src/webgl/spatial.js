@@ -4,7 +4,6 @@ import {vec3, quat, mat4} from 'gl-matrix';
 import Logger from 'js-logger';
 import {Uniforms} from './shader.js';
 import {RENDER_ORDER} from './scene.js';
-import {BLEND, DEPTH} from './material.js';
 
 // # `SpatialData`
 //

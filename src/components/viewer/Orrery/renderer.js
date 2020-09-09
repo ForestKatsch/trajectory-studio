@@ -48,12 +48,12 @@ export default class OrreryRenderer extends Renderer {
           wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
           anisotropy_level: 16
         });
-    }, 5000);
+    }, 0);
 
     this.createShader('earth', default_vert, earth_frag);
     this.createShader('star', default_vert, star_frag);
     
-    let shader = this.createShader('atmosphere', default_vert, atmosphere_frag);
+    this.createShader('atmosphere', default_vert, atmosphere_frag);
 
     this.scene.uniforms.set('uColor', vec3.fromValues(1, 1, 1));
     
