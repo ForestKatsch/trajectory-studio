@@ -3,7 +3,7 @@ import Logger from 'js-logger';
 
 const MAX_VERTICES_U16 = 65536;
 
-function flatten(array) {
+export function flatten(array) {
   let flat = [];
   
   for(let i=0; i<array.length; i++) {

@@ -22,6 +22,8 @@ class OrreryViewer extends React.Component {
     this.state = {
       loaded: false,
       paused: false,
+
+      loading: true,
       
       use_anisotropy: true,
       display_stats: true,
@@ -123,6 +125,9 @@ class OrreryViewer extends React.Component {
       <section className={`OrreryViewer ${this.state.loaded ? 'OrreryViewer--loaded' : ''}`}>
         <canvas ref={this.canvas}></canvas>
         {emptyState}
+        <div className="OrreryViewer__info">
+          <CircularProgress visible={this.state.loading} size={24} />
+        </div>
         <div className="OrreryViewer__options App--theme-light">
           <Switch
             label="Pause Renderer"
@@ -153,8 +158,11 @@ class OrreryViewer extends React.Component {
               <li>{this.state.stats_draw_call_count} draw calls</li>
               <li>{this.state.stats_vertex_count} vertices</li>
               <li>{this.state.stats_frame_count} frames</li>
+              <li className="OrreryViewer__progress">
+                <span>Render</span>
+                <CircularProgress step={this.state.stats_frame_count} />
+              </li>
             </ul>
-            <CircularProgress step={this.state.stats_frame_count} />
           </AnimateHeight>
         </div>
       </section>

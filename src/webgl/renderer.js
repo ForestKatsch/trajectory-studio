@@ -268,9 +268,8 @@ export default class Renderer extends Asset {
   }
 
   initTextures() {
-    this.createTexture('@fallback').setFromColor(vec4.fromValues(1.0, 0.0, 1.0, 1.0));
-    this.createTexture('@fallback-cube').setFromColorCubemap(vec4.fromValues(1.0, 0.0, 1.0, 1.0));
-    //fallback.setState(STATE.LOAD_COMPLETE);
+    this.createTexture('@fallback').setFromColor(vec4.fromValues(0.0, 1.0, 1.0, 1.0));
+    this.createTexture('@fallback-cube').setFromCheckerCubemap(vec4.fromValues(0.0, 1.0, 1.0, 1.0), vec4.fromValues(0.0, 0.0, 0.0, 1.0), 64, 8);
   }
 
   initCanvas() {
@@ -379,10 +378,8 @@ export default class Renderer extends Asset {
       if(this.textures.getAsset(name).isReady()) {
         return this.textures.getAsset(name);
       }
-      
-      //Logger.debug(`Texture '${name}' is not ready yet, returning fallback...`);
     } else {
-      Logger.warn(`No such texture '${name}'`);
+      //Logger.warn(`No such texture '${name}'`);
     }
 
     return this.textures.getAsset('@fallback');
@@ -483,7 +480,8 @@ export default class Renderer extends Asset {
       return false;
     }
 
-    if(!this.isLoaded()) {
+    // Only defer rendering when we're not loaded if we haven't rendered yet.
+    if(!this.isLoaded() && this.performance.current_frame <= 1) {
       return false;
     }
 

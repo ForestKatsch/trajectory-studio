@@ -39,6 +39,12 @@ export const TYPE = {
   SAMPLER_CUBE: 0x8B60,
 };
 
+export let TYPE_NAMES = {};
+
+for(let key of Object.keys(TYPE)) {
+  TYPE_NAMES[TYPE[key]] = key;
+}
+
 export let FROM_GL_TYPE = {};
 
 for(let key of Object.keys(TYPE)) {
@@ -358,7 +364,7 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
   setTextureUniform(uniform_name, texture, index) {
     const gl = this.renderer.context;
     const location = this.getUniformLocation(uniform_name);
-
+    
     //Logger.debug(`Assigning '${texture.name}' as index ${index} for uniform '${uniform_name}'`);
     
     gl.activeTexture(gl.TEXTURE0 + index);
@@ -426,17 +432,18 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
       } else if(expected_uniform_type === TYPE.TEXTURE_CUBE_MAP) {
         texture = this.renderer.getTexture('@fallback-cube');
       } else {
-        Logger.warn(`Unexpected texture type '${expected_uniform_type}' for uniform '${uniform_name}' in shader '${this.name}', ignoring`);
+        Logger.warn(`Unexpected texture type '${TYPE_NAMES[expected_uniform_type]}' for uniform '${uniform_name}' in shader '${this.name}', ignoring`);
         continue;
       }
       
       if(uniform_name in uniforms) {
         let uniform_texture = this.renderer.getTexture(uniforms[uniform_name].texture_name);
-        
+
         if(uniform_texture.type === expected_uniform_type) {
           texture = uniform_texture;
-        } else {
-          Logger.warn(`Texture '${uniform_texture.name}' for uniform '${uniform_name}' on shader '${this.name}' is wrong texture type (should be '${expected_uniform_type}', found '${uniform_texture.type}'), using fallback`);
+          // We don't print out this warning if the fallback texture is being used.
+        } else if(uniform_texture.type !== null && !uniform_texture.name.startsWith('@')) {
+          Logger.warn(`Texture '${uniform_texture.name}' for uniform '${uniform_name}' on shader '${this.name}' is wrong texture type (should be '${TYPE_NAMES[expected_uniform_type]}', found '${TYPE_NAMES[uniform_texture.type]}'), using fallback`);
         }
       } else {
         //Logger.warn(`No texture given for '${uniform_name}' on shader '${this.name}', using fallback`);

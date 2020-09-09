@@ -47,6 +47,10 @@ export class Asset extends EventEmitter {
     return this.state === STATE.LOAD_COMPLETE;
   }
 
+  isLoading() {
+    return this.state === STATE.LOADING;
+  }
+
   // Returns `true` if this asset is either loaded or had an error while loading.
   isDoneLoading() {
     return this.isLoaded() || this.state === STATE.LOAD_ERROR;
@@ -104,7 +108,7 @@ export default class Loader extends Asset {
   }
 
   hasAsset(name) {
-    return this.getAsset(name) !== null;
+    return name in this.assets;
   }
 
   // Returns the internal key-value list of all assets.

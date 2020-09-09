@@ -2,6 +2,7 @@
 import {vec4} from 'gl-matrix';
 
 import {TYPE} from './shader.js';
+import {flatten} from './mesh.js';
 import {Asset, STATE} from './loader.js';
 import Logger from 'js-logger';
 
@@ -63,6 +64,14 @@ export default class Texture extends Asset {
     //this._setFromColor(vec4.fromValues(1, 0, 1, 1));
   }
   
+  setFromColorInit(type) {
+    this.type = type;
+    this.setState(STATE.LOADING);
+    
+    const gl = this.renderer.context;
+    gl.bindTexture(this.type, this.texture);
+  }
+  
   // `Color` is a vec4 with RGBA.
   setFromColor(color) {
     this.setFromColorInit(TYPE.TEXTURE_2D);
@@ -86,14 +95,47 @@ export default class Texture extends Asset {
     this.setState(STATE.LOAD_COMPLETE);
   }
 
-  setFromColorInit(type) {
-    this.type = type;
-    this.setState(STATE.LOADING);
+  createCheckerData(colora, colorb, size, cell_size) {
+    vec4.scale(colora, colora, 255);
+    vec4.scale(colorb, colorb, 255);
+
+    let data = [];
     
-    const gl = this.renderer.context;
-    gl.bindTexture(this.type, this.texture);
+    for(let i=0; i<size*size; i++) {
+      let x = i % size;
+      let y = Math.floor(i / size);
+
+      var x_cell = Math.floor(x / (size / cell_size));
+      var y_cell = Math.floor(y / (size / cell_size));
+
+      if((x_cell + y_cell) % 2 === 0) {
+        data.push(colora);
+      } else {
+        data.push(colorb);
+      }
+    }
+
+    return flatten(data);
   }
   
+  setCheckerFromColor(colora, colorb, size, checkers) {
+    this.setFromColorInit(TYPE.TEXTURE_2D);
+    
+    const gl = this.renderer.context;
+    
+    const format = gl.RGBA;
+    
+    const width = 1;
+    const height = 1;
+
+    let type = this.getGLTextureType();
+    
+    gl.bindTexture(type, this.texture);
+    gl.texImage2D(type, 0, format, width, height, 0, format, gl.UNSIGNED_BYTE, new Uint8Array(this.createCheckerData(colora, colorb, size, checkers)));
+    
+    this.setState(STATE.LOAD_COMPLETE);
+  }
+
   setFromColorCubemap(color) {
     this.setFromColorInit(TYPE.TEXTURE_CUBE_MAP);
     
@@ -115,13 +157,48 @@ export default class Texture extends Asset {
     ];
 
     targets.forEach((target, index) => {
-      const level = 0;
       const format = gl.RGB;
       const type = gl.UNSIGNED_BYTE;
       
       gl.texImage2D(target, 0, format, 1, 1, 0, format, type, data);
     });
     
+    this.setState(STATE.LOAD_COMPLETE);
+  }
+
+  setFromCheckerCubemap(colora, colorb, size, cell_size) {
+    this.setFromColorInit(TYPE.TEXTURE_CUBE_MAP);
+    
+    const gl = this.renderer.context;
+    
+    const data = new Uint8Array(this.createCheckerData(colora, colorb, size, cell_size));
+
+    let type = this.getGLTextureType();
+    
+    const targets = [
+      gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+    ];
+
+    targets.forEach((target, index) => {
+      const format = gl.RGBA;
+      const type = gl.UNSIGNED_BYTE;
+
+      gl.texImage2D(target, 0, format, size, size, 0, format, type, data);
+    });
+    
+    gl.generateMipmap(type);
+    
+    gl.texParameteri(type, gl.TEXTURE_WRAP_S, this.parameters.wrap[0]);
+    gl.texParameteri(type, gl.TEXTURE_WRAP_T, this.parameters.wrap[1]);
+    
+    gl.texParameteri(type, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(type, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
     this.setState(STATE.LOAD_COMPLETE);
   }
 
@@ -136,7 +213,7 @@ export default class Texture extends Asset {
   }
 
   load(url) {
-    if(this.image !== null) {
+    if(this.type !== null) {
       Logger.warn(`Texture '${this.name}' already has an image assigned, skipping download of '${url}'.`);
       return;
     }
@@ -160,7 +237,7 @@ export default class Texture extends Asset {
       Logger.warn(`loadCubemap() must be called with a string URL (at the moment)`);
     }
 
-    if(this.image !== null) {
+    if(this.type !== null) {
       Logger.warn(`Texture '${this.name}' already has an image assigned, skipping download of '${url}'.`);
       return;
     }
@@ -171,28 +248,37 @@ export default class Texture extends Asset {
       urls.push(url.replace('{id}', i.toString().padStart(4, '0')));
     }
 
-    this.loadCubemapFaces(urls);
+    this.loadCubemapFacesFromURL(urls);
 
     return this;
   }
 
-  loadCubemapFaces(urls) {
+  // Given a list of image URLs, load all of them.
+  loadCubemapFacesFromURL(urls) {
     this.type = TYPE.TEXTURE_CUBE_MAP;
     
     this.setState(STATE.LOADING);
     
-    this.image = [];
+    this.images = [];
 
-    for(let url of urls) {
+    this.images = urls.map((url, index) => {
       Logger.info(`Fetching image '${url}' for cubemap '${this.name}'.`);
       
       let image = new Image();
-      image.onload = this.handleImageLoad.bind(this);
+      
+      image.onload = () => {
+        this.handleCubemapImageLoad(index);
+      };
+      
       image.onerror = this.handleImageError.bind(this);
       image.src = url;
 
-      this.image.push(image);
-    }
+      return {
+        image: image,
+        loaded: false,
+        index: index
+      };
+    });
   }
 
   setParameters(parameters) {
@@ -248,12 +334,12 @@ export default class Texture extends Asset {
       gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
     ];
 
-    this.image.forEach((image, index) => {
+    this.images.forEach((info) => {
       const level = 0;
       const format = gl.RGB;
       const type = gl.UNSIGNED_BYTE;
       
-      gl.texImage2D(targets[index], 0, format, format, type, image);
+      gl.texImage2D(targets[info.index], 0, format, format, type, info.image);
     });
   }
 
@@ -299,14 +385,18 @@ export default class Texture extends Asset {
     this.applyParameters();
   }
 
-  handleImageLoad(e) {
-    e.target._loaded = true;
+  handleImageLoad() {
+    this.assignImage();
+
+    this.setState(STATE.LOAD_COMPLETE);
+  }
+  
+  handleCubemapImageLoad(index) {
+    this.images[index].loaded = true;
     
-    if(this.type === TYPE.TEXTURE_CUBE_MAP) {
-      for(let image of this.image) {
-        if(!image._loaded) {
-          return;
-        }
+    for(let image of this.images) {
+      if(!image.loaded) {
+        return;
       }
     }
 

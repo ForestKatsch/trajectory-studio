@@ -8,6 +8,14 @@
   }
 }
 
+.CircularProgress {
+  transition: opacity 0.35s ease;
+}
+
+.CircularProgress--hidden {
+  opacity: 0;
+}
+
 .CircularProgress--spinning {
   display: inline-block;
 }

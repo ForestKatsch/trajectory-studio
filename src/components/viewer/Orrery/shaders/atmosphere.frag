@@ -105,15 +105,17 @@ vec3 atmosphereColor(vec3 position, vec3 direction, vec3 star_direction) {
     float star_distance = max(star_ray.y, 0.0);
 
     // Cast a ray against the planet towards the sun.
-    planet_ray = raySphereDistance(point, star_direction, planet_radius);
+    //planet_ray = raySphereDistance(point, star_direction, planet_radius);
 
     // How much of the sun is hitting this sample, from 0..1.
     float star_exposure = 1.0;
 
     // If the planet is in the way, calculate the smooth shadow.
+    /*
     if(planet_ray.y > 0.0) {
       star_exposure = smoothstep(0.5, 1.0, planet_ray.z);
     }
+*/
 
     // The optical depth (= approximate density) of the atmosphere along the ray towards the star.
     float star_ray_optical_depth = atmosphereOpticalDepth(point, star_direction, star_distance);

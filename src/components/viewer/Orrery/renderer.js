@@ -40,13 +40,15 @@ export default class OrreryRenderer extends Renderer {
         wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
         anisotropy_level: 16
       });
-    
-    this.createTexture('stellar-body-earth-color-cubemap')
-      .loadCubemap('static/stellar/bodies/earth/color-{id}.jpg')
-      .setParameters({
-        wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
-        anisotropy_level: 16
-      });
+
+    setTimeout(() => {
+      this.color = this.createTexture('stellar-body-earth-color-cube');
+      this.color.loadCubemap('static/stellar/bodies/earth/color-{id}.jpg')
+        .setParameters({
+          wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
+          anisotropy_level: 16
+        });
+    }, 5000);
 
     this.createShader('earth', default_vert, earth_frag);
     this.createShader('star', default_vert, star_frag);
@@ -81,7 +83,7 @@ export default class OrreryRenderer extends Renderer {
     
     earth_material.set('uNormalCube', 'stellar-body-earth-normal-cube');
     earth_material.set('uLandinfoCube', 'stellar-body-earth-landinfo-cube');
-    earth_material.set('uColorCube', 'stellar-body-earth-color-cubemap');
+    earth_material.set('uColorCube', 'stellar-body-earth-color-cube');
     
     this.scene.root.add(earth);
     
@@ -137,6 +139,7 @@ export default class OrreryRenderer extends Renderer {
     this.camera.setData(new CameraData(60, 1, 7500000000*1000));
 
     this.camera.position = vec3.fromValues(0, 0, this.earth.scale[0] * 1.2);
+    //this.camera.position = vec3.fromValues(0, 0, 10);
 
     this.scene.root.add(this.camera);
     this.scene.setCamera(this.camera);
@@ -288,8 +291,8 @@ export default class OrreryRenderer extends Renderer {
     let scale = 1;
     this.scene.scale = vec3.fromValues(1 / scale, 1 / scale, 1 / scale);
     
-    //this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) * 100000000, 20000000, Math.cos(now / 10.0) *100000000));
-    this.scene.setUniform('uStarPosition', vec3.fromValues(0, 900000000, 300000000));
+    this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) * 100000000, 20000000, Math.cos(now / 10.0) *100000000));
+    //this.scene.setUniform('uStarPosition', vec3.fromValues(0, 900000000, 300000000));
     this.scene.setUniform('uStarColor', vec3.fromValues(1, 0.95, 0.9));
     quat.fromEuler(this.earth.rotation, 0, now * 0.5, 0);
 
@@ -304,6 +307,9 @@ export default class OrreryRenderer extends Renderer {
       }));
     }
     
+    this.viewer.setState(state => ({
+      loading: this.isLoading()
+    }));
   }
   
 }

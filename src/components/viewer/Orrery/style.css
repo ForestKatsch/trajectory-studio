@@ -67,4 +67,16 @@
   user-select: contain;
 }
 
-  
+.OrreryViewer__progress {
+  display: flex;
+}
+
+.OrreryViewer__progress span {
+  flex: 1;
+}
+
+.OrreryViewer__info {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+}
