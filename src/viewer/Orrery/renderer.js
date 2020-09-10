@@ -223,7 +223,7 @@ export default class OrreryRenderer extends Renderer {
   }
   
   handleUpdateBefore() {
-    let now = Date.now() / 100;
+    //let now = Date.now() / 100;
 
     this.atmosphere.setEnabled(this.options.display_atmospheres);
 
@@ -231,7 +231,7 @@ export default class OrreryRenderer extends Renderer {
     this.scene.scale = vec3.fromValues(1 / scale, 1 / scale, 1 / scale);
     
     //this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) * 100000000, 20000000, Math.cos(now / 10.0) *100000000));
-    this.scene.setUniform('uStarPosition', vec3.fromValues(0, 900000000, 300000000));
+    this.scene.setUniform('uStarPosition', vec3.fromValues(0, 200000000, 300000000));
     this.scene.setUniform('uStarColor', vec3.fromValues(1, 0.95, 0.9));
     //this.scene.setUniform('uStarColor', vec3.fromValues(0.2, 0.5, 1.0));
     //quat.fromEuler(this.earth.rotation, 0, now * 0.5, 0);

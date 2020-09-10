@@ -247,10 +247,10 @@ export default class Spatial {
       return;
     }
     
-    this.callData('update', renderer, this);
-
     this.updateMatrices();
     
+    this.callData('update', renderer, this);
+
     for(let child of this.children) {
       child.update(renderer);
     }
