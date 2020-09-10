@@ -400,6 +400,12 @@ export default class Spatial {
     this.scene.flagDirty();
   }
 
+  addTo(parent) {
+    parent.add(this);
+
+    return this;
+  }
+
   remove(child) {
     Logger.error('Not implemented yet');
   }

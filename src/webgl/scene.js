@@ -77,6 +77,10 @@ export default class Scene {
     return renderables;
   }
 
+  add(child) {
+    return this.root.add(child);
+  }
+
   // TODO: fix naive ordering, add batching.
   draw(renderer) {
     this._dirty = false;

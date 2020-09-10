@@ -22,7 +22,7 @@ export default class OrreryRenderer extends Renderer {
     this.options.desynchronized = true;
 
     this.input = {
-      current_heading: 0,
+      current_heading: 90,
       current_pitch: 0
     };
     
@@ -37,14 +37,24 @@ export default class OrreryRenderer extends Renderer {
     this.on('tickafter', this.handleTickAfter.bind(this));
 
     this.scene = new Scene();
-
-    this.createTexture('stellar-body-earth-landinfo-cube')
-      .loadCubemap('static/stellar/bodies/earth/landinfo-{id}.jpg')
-      .setParameters({
-        wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
-        anisotropy_level: 16
-      });
     
+    this.createShaders();
+    this.createQuadspheres();
+    
+    this.createSun();
+    this.createEarth();
+    this.createCamera();
+
+    this.options = {
+      ...this.options,
+      max_anisotropy_level: 16,
+      display_atmospheres: true
+    };
+  }
+
+  createShaders() {
+    this.createShader('atmosphere', default_vert, atmosphere_frag);
+
     this.createTexture('atmosphere-thickness-lut')
       .setFromShader(64, 64, (coord) => {
         let dotToThickness = (value, radius) => {
@@ -57,46 +67,61 @@ export default class OrreryRenderer extends Renderer {
         wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
         anisotropy_level: 16
       });
+  }
+
+  createSun() {
+    this.createShader('stellar-body-sun', default_vert, star_frag);
+
+    // Create the earth material.
+    let sun_material = new Material(this.scene, 'stellar-body-sun');
     
-    this.createTexture('stellar-body-earth-normal-cube')
-      .loadCubemap('static/stellar/bodies/earth/normal-{id}.jpg')
+    this.sun = new Spatial(this.scene)
+      .setName('body-sun')
+      .setData(new MeshData('quadsphere', sun_material))
+      .addTo(this.scene);
+
+    let sun_diameter = 1.3927 * 1000000 * 1000;
+    let sun_distance = 149.6 * 1000000 * 1000;
+
+    sun_material.setUniform('uStarColor', vec3.fromValues(1, 0.8, 0.5));
+    
+    vec3.set(this.sun.scale, sun_diameter, sun_diameter, sun_diameter);
+    vec3.set(this.sun.position, 0, 0, sun_distance);
+  }
+
+  createEarth() {
+    // Get the textures we need.
+    this.createTexture('stellar-body-earth-landinfo-cube')
+      //.setFallback()
+      .loadCubemap('static/stellar/bodies/earth/landinfo-{id}.jpg')
+      .setParameters({
+        wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
+        anisotropy_level: 16
+      });
+    
+    this.createTexture('stellar-body-earth-color-cube')
+      .loadCubemap('static/stellar/bodies/earth/color-{id}.jpg')
       .setParameters({
         wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
         anisotropy_level: 16
       });
 
     setTimeout(() => {
-      this.color = this.createTexture('stellar-body-earth-color-cube');
-      this.color.loadCubemap('static/stellar/bodies/earth/color-{id}.jpg')
+      this.createTexture('stellar-body-earth-normal-cube')
+        .loadCubemap('static/stellar/bodies/earth/normal-{id}.jpg')
         .setParameters({
           wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
           anisotropy_level: 16
         });
     }, 0);
 
-    this.createShader('earth', atmosphere_body_vert, earth_frag);
-    this.createShader('star', default_vert, star_frag);
-    
-    this.createShader('atmosphere', default_vert, atmosphere_frag);
+    this.createShader('stellar-body-earth', atmosphere_body_vert, earth_frag);
 
-    this.scene.uniforms.set('uColor', vec3.fromValues(1, 1, 1));
-    
-    this.createQuadspheres();
-    this.createPlanet();
-    this.createCamera();
-
-    this.options = {
-      ...this.options,
-      max_anisotropy_level: 16,
-      display_atmospheres: true
-    };
-  }
-
-  createPlanet() {
-    let earth_material = new Material(this.scene, 'earth');
+    // Create the earth material.
+    let earth_material = new Material(this.scene, 'stellar-body-earth');
     
     let earth = new Spatial(this.scene)
-        .setName('earth')
+        .setName('body-earth')
         .setData(new MeshData('quadsphere', earth_material));
 
     let earth_diameter = 12742 * 1000;
@@ -114,9 +139,6 @@ export default class OrreryRenderer extends Renderer {
       });
     
     this.scene.root.add(earth);
-    
-    this.spinny = new Spatial(this.scene, 'spinny');
-    earth.add(this.spinny);
 
     let atmosphere_material = new Material(this.scene, 'atmosphere');
     atmosphere_material.blend_mode = BLEND.ADD;
@@ -153,6 +175,9 @@ export default class OrreryRenderer extends Renderer {
     this.earth = earth;
 
     /*
+    this.spinny = new Spatial(this.scene, 'spinny');
+    earth.add(this.spinny);
+
     let steps = 0;
     for(let i=0; i<steps; i++) {
       let mesh = new Spatial(this.scene, `mesh-${i}`);
@@ -231,8 +256,11 @@ export default class OrreryRenderer extends Renderer {
     this.scene.scale = vec3.fromValues(1 / scale, 1 / scale, 1 / scale);
     
     //this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) * 100000000, 20000000, Math.cos(now / 10.0) *100000000));
-    this.scene.setUniform('uStarPosition', vec3.fromValues(0, 200000000, 300000000));
+    //this.scene.setUniform('uStarPosition', vec3.fromValues(0, 200000000, 300000000));
+    this.scene.setUniform('uStarPosition', this.sun.position);
+    
     this.scene.setUniform('uStarColor', vec3.fromValues(1, 0.95, 0.9));
+    
     //this.scene.setUniform('uStarColor', vec3.fromValues(0.2, 0.5, 1.0));
     //quat.fromEuler(this.earth.rotation, 0, now * 0.5, 0);
 

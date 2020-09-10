@@ -167,6 +167,9 @@ export default class Renderer extends Asset {
     ]));
 
     if(this.isLoaded()) {
+      this.emit('loaded', {
+        renderer: this
+      });
       Logger.info(`All initial assets for this renderer are loaded.`);
     }
   }

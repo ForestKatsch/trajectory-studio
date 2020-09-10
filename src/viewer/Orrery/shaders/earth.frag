@@ -66,8 +66,8 @@ void main() {
   vec3 tex_color = textureCube(uColorCube, coord_cubemap).rgb;
 
   float frac_land = tex_landinfo.r;
-  float frac_nightLights = tex_landinfo.g;
-  float frac_cloudCover = textureCube(uLandinfoCube, distortCubemapTexture(coord_cubemap, dir_view, -frac_cloudAltitude)).b;
+  float frac_nightLights = tex_landinfo.b;
+  float frac_cloudCover = textureCube(uLandinfoCube, distortCubemapTexture(coord_cubemap, dir_view, -frac_cloudAltitude)).g;
   
   vec3 color_albedo = tex_color;
 
@@ -87,7 +87,7 @@ void main() {
   // The color of the clouds themselves. The power is to keep them brighter near the terminator.
   vec3 color_cloud = vec3(1.0) * (pow(clamp(frac_starExposure, 0.0, 1.0), 0.6) * (1.0 - frac_brightnessBoost) + frac_brightnessBoost);
 
-  float frac_cloudShadow = textureCube(uLandinfoCube, distortCubemapTexture(coord_cubemap, dir_star, frac_cloudAltitude), 1.0).b * 0.5;
+  float frac_cloudShadow = textureCube(uLandinfoCube, distortCubemapTexture(coord_cubemap, dir_star, frac_cloudAltitude), 1.0).g * 0.5;
   
   // Mix in the shadow color.
   mat_color = mix(mat_color, vec3(0.0), frac_cloudShadow);
