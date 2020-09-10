@@ -85,7 +85,7 @@ void main() {
   vec3 mat_color = mat_diffuse + mat_specular + mat_emit;
 
   // The color of the clouds themselves. The power is to keep them brighter near the terminator.
-  vec3 color_cloud = vec3(1.0) * pow(clamp(frac_starExposure, 0.0, 1.0), 0.6);
+  vec3 color_cloud = vec3(1.0) * (pow(clamp(frac_starExposure, 0.0, 1.0), 0.6) * (1.0 - frac_brightnessBoost) + frac_brightnessBoost);
 
   float frac_cloudShadow = textureCube(uLandinfoCube, distortCubemapTexture(coord_cubemap, dir_star, frac_cloudAltitude), 1.0).b * 0.5;
   
