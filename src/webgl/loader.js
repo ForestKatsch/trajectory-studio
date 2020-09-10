@@ -28,7 +28,7 @@ export class Asset extends EventEmitter {
       return;
     }
     
-    Logger.info(`Asset '${this.name}' state is moving from '${this.state}' to '${state}'`);
+    //Logger.info(`Asset '${this.name}' state is moving from '${this.state}' to '${state}'`);
     
     if(this.isDoneLoading() && !this.can_move_backwards) {
       Logger.warn(`Asset '${this.name}' state is moving from '${this.state}' to '${state}', but it's already loaded.`);
@@ -66,7 +66,7 @@ export class Asset extends EventEmitter {
     }
     
     for(let asset of assets) {
-      if(asset.state === STATE.LOAD_ERROR) {
+      if(asset.state === STATE.LOAD_ERROR || asset.state === STATE.WAITING) {
         continue;
       }
       

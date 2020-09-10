@@ -92,28 +92,27 @@ export default class OrreryRenderer extends Renderer {
   createEarth() {
     // Get the textures we need.
     this.createTexture('stellar-body-earth-landinfo-cube')
-      //.setFallback()
       .loadCubemap('static/stellar/bodies/earth/landinfo-{id}.jpg')
       .setParameters({
-        wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
         anisotropy_level: 16
       });
     
     this.createTexture('stellar-body-earth-color-cube')
       .loadCubemap('static/stellar/bodies/earth/color-{id}.jpg')
       .setParameters({
-        wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
         anisotropy_level: 16
       });
 
-    setTimeout(() => {
-      this.createTexture('stellar-body-earth-normal-cube')
+    let normal = this.createTexture('stellar-body-earth-normal-cube')
+        .setFallback('@fallback-cube-normal');
+
+    this.on('loadcomplete', () => {
+      normal
         .loadCubemap('static/stellar/bodies/earth/normal-{id}.jpg')
         .setParameters({
-          wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
           anisotropy_level: 16
         });
-    }, 0);
+    });
 
     this.createShader('stellar-body-earth', atmosphere_body_vert, earth_frag);
 

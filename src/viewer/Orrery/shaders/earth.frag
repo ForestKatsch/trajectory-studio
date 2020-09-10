@@ -45,20 +45,25 @@ void main() {
   // The computed normal from the cubemap.
   vec3 dir_worldNormal = modelToWorldDirection(normalFromCubemap(uNormalCube, coord_cubemap));
 
-  //gl_FragColor = vec4(vec3(1.0) * dot(-dir_worldNormal, dir_view), 1.0);
-  //gl_FragColor = vec4(vec3(1.0) * dot(-dir_worldNormal, dir_view), 1.0);
+  /*
+  float blend = smoothstep(-0.001, 0.001, vScreenPosition.x);
+
+  gl_FragColor = vec4(mix(dir_worldNormal * 0.5 + 0.5, vWorldNormal * 0.5 + 0.5, blend), 1.0);
+
+  return;
+*/
 
   // This special function ensures that the normal map doesn't have mountains lit up if they're behind the body.
   float frac_starExposure = min(dot(dir_worldNormal, dir_star), pow(clamp(dot(vWorldNormal, dir_star), 0.0, 1.0), 0.75));
 
   // The dark side of the planet will be this bright, as a fraction of full brightness.
   float frac_brightnessBoost = 0.1;
-  
+
   // This includes the color as well.
   vec3 color_starLight = (clamp(frac_starExposure, 0.0, 1.0) * (1.0 - frac_brightnessBoost) + frac_brightnessBoost) * uStarColor;
-  
+
   float frac_cloudAltitude = 0.005;
-  
+
   // The direction of the sun reflecting off the world. We use the (spherical) normal here, not the normalmap.
   vec3 dir_starReflection = reflect(dir_star, vWorldNormal);
 
@@ -68,7 +73,7 @@ void main() {
   float frac_land = tex_landinfo.r;
   float frac_nightLights = tex_landinfo.b;
   float frac_cloudCover = textureCube(uLandinfoCube, distortCubemapTexture(coord_cubemap, dir_view, -frac_cloudAltitude)).g;
-  
+
   vec3 color_albedo = tex_color;
 
   // The diffuse component of this pixel.
@@ -78,7 +83,7 @@ void main() {
   vec3 mat_specular = vec3(0.5) * (1.0 - frac_land) * pow(clamp(dot(dir_starReflection, dir_view), 0.0, 1.0), frac_specularPower);
 
   //t_landinfo = texture2D(uLandinfo, coordinates, pow(cloud_cover, 1.5) * 1.0).rgb;
-  
+
   vec3 mat_emit = uNightColor * frac_nightLights * clamp(pow(-frac_starExposure, 0.5), 0.0, 1.0);
 
   // The color under the clouds.
@@ -88,7 +93,7 @@ void main() {
   vec3 color_cloud = vec3(1.0) * (pow(clamp(frac_starExposure, 0.0, 1.0), 0.6) * (1.0 - frac_brightnessBoost) + frac_brightnessBoost);
 
   float frac_cloudShadow = textureCube(uLandinfoCube, distortCubemapTexture(coord_cubemap, dir_star, frac_cloudAltitude), 1.0).g * 0.5;
-  
+
   // Mix in the shadow color.
   mat_color = mix(mat_color, vec3(0.0), frac_cloudShadow);
 
@@ -96,6 +101,6 @@ void main() {
   mat_color = mix(mat_color, color_cloud, frac_cloudCover);
 
   vec3 mat_atmosphere = vAtmosphereColor;
-    
+
   gl_FragColor = vec4(mat_atmosphere + mat_color, 1.0);
 }

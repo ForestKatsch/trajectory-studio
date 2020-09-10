@@ -108,6 +108,7 @@ export class MouseInput extends Input {
     this.element.addEventListener('mouseup', this.handleMouseUp);
     
     window.addEventListener('mouseout', this.handleMouseOut);
+    window.addEventListener('blur', this.handleMouseOut);
 
     this.down_position = vec2.create();
     this.position = vec2.create();

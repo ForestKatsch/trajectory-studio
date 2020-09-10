@@ -1,5 +1,5 @@
 
-import {vec2, vec4} from 'gl-matrix';
+import {vec2, vec3, vec4} from 'gl-matrix';
 
 import {TYPE} from './shader.js';
 import {flatten} from './mesh.js';
@@ -12,6 +12,15 @@ export const WRAP = {
   MIRRORED_REPEAT: 0x8370,
 };
 
+export const FORMAT = {
+  DEPTH_COMPONENT: 0x1902,
+  ALPHA: 0x1906,
+  RGB: 0x1907,
+  RGBA: 0x1908,
+  LUMINANCE: 0x1909,
+  LUMINANCE_ALPHA: 0x190A
+};
+
 export const FILTER = {
   NEAREST: 0x2600,
   LINEAR: 0x2601,
@@ -20,6 +29,15 @@ export const FILTER = {
   NEAREST_MIPMAP_LINEAR: 0x2702,
   LINEAR_MIPMAP_LINEAR: 0x2703,
 }
+
+const CUBEMAP_TARGETS = [
+  0x8515,
+  0x8516,
+  0x8517,
+  0x8518,
+  0x8519,
+  0x851A,
+];
 
 // # `Texture`
 //
@@ -33,13 +51,15 @@ export default class Texture extends Asset {
     if(!parameters) {
       parameters = {};
     }
-    
+
     this.renderer = renderer;
 
     this.type = null;
-    
+
     // HTML image(s)
     this.image = null;
+
+    this.fallback = null;
 
     // WebGL texture ID.
     this.texture = null;
@@ -57,81 +77,101 @@ export default class Texture extends Asset {
     return this.isLoaded();
   }
 
+  bind() {
+    this.renderer.context.bindTexture(this.type, this.texture);
+  }
+
   init() {
     const gl = this.renderer.context;
-    
+
     this.texture = gl.createTexture();
     //this._setFromColor(vec4.fromValues(1, 0, 1, 1));
   }
-  
-  setFromColorInit(type) {
-    this.type = type;
-    this.setState(STATE.LOADING);
-    
-    const gl = this.renderer.context;
-    gl.bindTexture(this.type, this.texture);
+
+  setFallback(fallback) {
+    this.fallback = fallback;
+
+    return this;
   }
-  
+
   // `Color` is a vec4 with RGBA.
   setFromColor(color) {
-    this.setFromColorInit(TYPE.TEXTURE_2D);
-    
     const gl = this.renderer.context;
-    
-    const format = gl.RGBA;
-    
-    const width = 1;
-    const height = 1;
-
     vec4.scale(color, color, 255);
-    
-    const data = new Uint8Array(color);
+    return this.setFromData(1, 1, gl.RGBA, new Uint8Array(color));
+  }
 
-    let type = this.getGLTextureType();
-    
-    gl.bindTexture(type, this.texture);
-    gl.texImage2D(type, 0, format, width, height, 0, format, gl.UNSIGNED_BYTE, data);
-    
+  setFromData(width, height, format, data) {
+    const gl = this.renderer.context;
+
+    this.type = TYPE.TEXTURE_2D;
+    this.setState(STATE.LOADING);
+
+    this.bind();
+
+    gl.texImage2D(this.type, 0, format, width, height, 0, format, gl.UNSIGNED_BYTE, data);
+    gl.generateMipmap(this.type);
+
+    this.applyParameters();
+
     this.setState(STATE.LOAD_COMPLETE);
-    
+
     return this;
+  }
+
+  setFromDataCubemap(size, format, data_faces) {
+    const gl = this.renderer.context;
+
+    this.type = TYPE.TEXTURE_CUBE_MAP;
+    this.setState(STATE.LOADING);
+
+    this.bind();
+
+    CUBEMAP_TARGETS.forEach((target, index) => {
+      const type = gl.UNSIGNED_BYTE;
+
+      gl.texImage2D(target, 0, format, size, size, 0, format, type, data_faces[index]);
+    });
+
+    gl.generateMipmap(this.type);
+
+    this.parameters.wrap = [
+      WRAP.CLAMP_TO_EDGE,
+      WRAP.CLAMP_TO_EDGE
+    ];
+
+    this.applyParameters();
+
+    this.setState(STATE.LOAD_COMPLETE);
+
+    return this;
+  }
+
+  // Writes the same data to each face.
+  setFromSameDataCubemap(size, format, data) {
+    return this.setFromDataCubemap(size, format, [data, data, data, data, data, data]);
   }
 
   // `Shader` is a function that is given `x` and `y` coordinates as a `vec2`, and returns a `vec4`
   // as RGBA 0..1.
   setFromShader(width, height, shader) {
-    this.setFromColorInit(TYPE.TEXTURE_2D);
-    
-    const gl = this.renderer.context;
-    
-    const format = gl.RGBA;
-    
     let data = [];
 
     let coordinates = vec2.create();
     let color = vec4.create();
-    
+
     for(let i=0; i<width*height; i++) {
       vec2.set(coordinates, (i % width) / width, (Math.floor(i / width)) / width);
-      
+
       color = shader(coordinates);
       vec4.scale(color, color, 255);
-      
+
       data.push.apply(data, color);
     }
 
-    let type = this.getGLTextureType();
+    const gl = this.renderer.context;
 
-    gl.bindTexture(type, this.texture);
-    gl.texImage2D(type, 0, format, width, height, 0, format, gl.UNSIGNED_BYTE, new Uint8Array(flatten(data)));
-    
-    gl.generateMipmap(type);
-
-    this.applyParameters();
-    
-    this.setState(STATE.LOAD_COMPLETE);
-
-    return this;
+    return this.setFromData(width, height, gl.RGBA, new Uint8Array(data));
   }
 
   createCheckerData(colora, colorb, size, cell_size) {
@@ -139,7 +179,7 @@ export default class Texture extends Asset {
     vec4.scale(colorb, colorb, 255);
 
     let data = [];
-    
+
     for(let i=0; i<size*size; i++) {
       let x = i % size;
       let y = Math.floor(i / size);
@@ -156,87 +196,91 @@ export default class Texture extends Asset {
 
     return flatten(data);
   }
-  
-  setCheckerFromColor(colora, colorb, size, checkers) {
-    this.setFromColorInit(TYPE.TEXTURE_2D);
-    
-    const gl = this.renderer.context;
-    
-    const format = gl.RGBA;
-    
-    const width = 1;
-    const height = 1;
 
-    let type = this.getGLTextureType();
-    
-    gl.bindTexture(type, this.texture);
-    gl.texImage2D(type, 0, format, width, height, 0, format, gl.UNSIGNED_BYTE, new Uint8Array(this.createCheckerData(colora, colorb, size, checkers)));
-    
-    this.setState(STATE.LOAD_COMPLETE);
+  setCheckerFromColor(colora, colorb, size, checkers) {
+    const gl = this.renderer.context;
+
+    return this.setFromData(size, size, gl.RGBA, new Uint8Array(this.createCheckerData(colora, colorb, size, checkers)));
   }
 
   setFromColorCubemap(color) {
-    this.setFromColorInit(TYPE.TEXTURE_CUBE_MAP);
-    
     const gl = this.renderer.context;
-    
+
     vec4.scale(color, color, 255);
-    
-    const data = new Uint8Array(color);
 
-    const targets = [
-      gl.TEXTURE_CUBE_MAP_POSITIVE_X,
-      gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
-      gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
-      gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
-      gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
-      gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
-    ];
-
-    targets.forEach((target, index) => {
-      const format = gl.RGB;
-      const type = gl.UNSIGNED_BYTE;
-      
-      gl.texImage2D(target, 0, format, 1, 1, 0, format, type, data);
-    });
-    
-    this.setState(STATE.LOAD_COMPLETE);
+    return this.setFromSameDataCubemap(1, gl.RGBA, new Uint8Array(flatten(color)));
   }
 
   setFromCheckerCubemap(colora, colorb, size, cell_size) {
-    this.setFromColorInit(TYPE.TEXTURE_CUBE_MAP);
-    
     const gl = this.renderer.context;
-    
+
     const data = new Uint8Array(this.createCheckerData(colora, colorb, size, cell_size));
 
-    let type = this.getGLTextureType();
-    
-    const targets = [
-      gl.TEXTURE_CUBE_MAP_POSITIVE_X,
-      gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
-      gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
-      gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
-      gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
-      gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+    this.parameters.min_filter = FILTER.NEAREST;
+    this.parameters.mag_filter = FILTER.NEAREST;
+
+    this.setFromSameDataCubemap(size, gl.RGBA, new Uint8Array(flatten(data)));
+
+    return this;
+  }
+
+  setFromShaderCubemap(size, format, shader) {
+
+    let createFace = (swizzle) => {
+      let data = [];
+
+      let coordinates = vec2.create();
+      let coordinates_3d = vec3.create();
+      let color = vec4.create();
+
+      for(let i=0; i<size*size; i++) {
+        vec2.set(coordinates, ((i % size) / size) * 2 - 1, ((Math.floor(i / size)) / size) * 2 - 1);
+
+        coordinates_3d = swizzle(coordinates);
+        vec3.normalize(coordinates_3d, coordinates_3d);
+
+        color = shader(coordinates_3d);
+        vec4.scale(color, color, 255);
+
+        color[0] = Math.min(Math.max(color[0], 0), 255);
+        color[1] = Math.min(Math.max(color[1], 0), 255);
+        color[2] = Math.min(Math.max(color[2], 0), 255);
+        color[3] = Math.min(Math.max(color[3], 0), 255);
+
+        switch(format) {
+        case FORMAT.RGB:
+          data.push.call(data, color[0], color[1], color[2]);
+          break;
+        case FORMAT.RGBA:
+          data.push.apply(data, color);
+          break;
+        case FORMAT.ALPHA:
+          data.push(color[4]);
+          break;
+        case FORMAT.LUMINANCE:
+          data.push(color[0]);
+          break;
+        case FORMAT.LUMINANCE_ALPHA:
+        default:
+          data.push.call(data, color[0], color[4]);
+          break;
+        }
+
+      }
+
+      return new Uint8Array(data);
+    };
+
+    const data = [
+      createFace((c) => vec3.fromValues(1, -c[1], -c[0])),
+      createFace((c) => vec3.fromValues(-1, -c[1], c[0])),
+      createFace((c) => vec3.fromValues(c[0], 1, c[1])),
+      createFace((c) => vec3.fromValues(c[0], -1, -c[1])),
+      createFace((c) => vec3.fromValues(c[0], -c[1], 1)),
+      createFace((c) => vec3.fromValues(-c[0], -c[1], -1)),
     ];
 
-    targets.forEach((target, index) => {
-      const format = gl.RGBA;
-      const type = gl.UNSIGNED_BYTE;
-
-      gl.texImage2D(target, 0, format, size, size, 0, format, type, data);
-    });
-    
-    gl.generateMipmap(type);
-    
-    gl.texParameteri(type, gl.TEXTURE_WRAP_S, this.parameters.wrap[0]);
-    gl.texParameteri(type, gl.TEXTURE_WRAP_T, this.parameters.wrap[1]);
-    
-    gl.texParameteri(type, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(type, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-    this.setState(STATE.LOAD_COMPLETE);
+    return this.setFromDataCubemap(size, format, data);
   }
 
   getGLTextureType() {
@@ -254,13 +298,13 @@ export default class Texture extends Asset {
       Logger.warn(`Texture '${this.name}' already has an image assigned, skipping download of '${url}'.`);
       return;
     }
-    
+
     Logger.info(`Fetching image '${url}' for texture '${this.name}'.`);
 
     this.type = TYPE.TEXTURE_2D;
-    
+
     this.setState(STATE.LOADING);
-    
+
     this.image = new Image();
     this.image.onload = this.handleImageLoad.bind(this);
     this.image.onerror = this.handleImageError.bind(this);
@@ -278,7 +322,7 @@ export default class Texture extends Asset {
       Logger.warn(`Texture '${this.name}' already has an image assigned, skipping download of '${url}'.`);
       return;
     }
-    
+
     let urls = [];
 
     for(let i=0; i<6; i++) {
@@ -293,20 +337,20 @@ export default class Texture extends Asset {
   // Given a list of image URLs, load all of them.
   loadCubemapFacesFromURL(urls) {
     this.type = TYPE.TEXTURE_CUBE_MAP;
-    
+
     this.setState(STATE.LOADING);
-    
+
     this.images = [];
 
     this.images = urls.map((url, index) => {
       Logger.info(`Fetching image '${url}' for cubemap '${this.name}'.`);
-      
+
       let image = new Image();
-      
+
       image.onload = () => {
         this.handleCubemapImageLoad(index);
       };
-      
+
       image.onerror = this.handleImageError.bind(this);
       image.src = url;
 
@@ -332,64 +376,58 @@ export default class Texture extends Asset {
   // Assigns the image to WebGL.
   assignImage() {
     const gl = this.renderer.context;
-    const type = this.getGLTextureType();
-    
-    gl.bindTexture(type, this.texture);
-    
+
+    this.bind();
+
     if(this.type === TYPE.TEXTURE_CUBE_MAP) {
       this.assignCubemap();
     } else {
       this.assign2D();
     }
 
-    gl.generateMipmap(type);
-    
+    gl.generateMipmap(this.type);
+
     this.applyParameters();
   }
 
   assign2D() {
     const gl = this.renderer.context;
-    const type = this.getGLTextureType();
-    
+
     const format = gl.RGB;
     const srcType = gl.UNSIGNED_BYTE;
 
-    gl.texImage2D(type, 0, format, format, srcType, this.image);
+    gl.texImage2D(this.type, 0, format, format, srcType, this.image);
   }
 
   assignCubemap() {
     Logger.info(`Assigning image '${this.name}' to WebGL cubemap texture.`);
-    
+
     const gl = this.renderer.context;
-    
-    const targets = [
-      gl.TEXTURE_CUBE_MAP_POSITIVE_X,
-      gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
-      gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
-      gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
-      gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
-      gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
-    ];
+
+    this.parameters.wrap = [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE];
 
     this.images.forEach((info) => {
       const format = gl.RGB;
       const type = gl.UNSIGNED_BYTE;
-      
-      gl.texImage2D(targets[info.index], 0, format, format, type, info.image);
+
+      gl.texImage2D(CUBEMAP_TARGETS[info.index], 0, format, format, type, info.image);
     });
   }
 
   applyParameters() {
     const gl = this.renderer.context;
-    const type = this.getGLTextureType();
 
-    gl.bindTexture(type, this.texture);
-    
-    gl.texParameteri(type, gl.TEXTURE_WRAP_S, this.parameters.wrap[0]);
-    gl.texParameteri(type, gl.TEXTURE_WRAP_T, this.parameters.wrap[1]);
-    
-    gl.texParameteri(type, gl.TEXTURE_MIN_FILTER, this.parameters.min_filter);
-    gl.texParameteri(type, gl.TEXTURE_MAG_FILTER, this.parameters.mag_filter);
+    if(this.type === null) {
+      return;
+    }
+
+    this.bind();
+
+    gl.texParameteri(this.type, gl.TEXTURE_WRAP_S, this.parameters.wrap[0]);
+    gl.texParameteri(this.type, gl.TEXTURE_WRAP_T, this.parameters.wrap[1]);
+
+    gl.texParameteri(this.type, gl.TEXTURE_MIN_FILTER, this.parameters.min_filter);
+    gl.texParameteri(this.type, gl.TEXTURE_MAG_FILTER, this.parameters.mag_filter);
 
     if(this.parameters.anisotropy_level) {
       this.applyParameterAnisotropy();
@@ -399,7 +437,7 @@ export default class Texture extends Asset {
   applyParameterAnisotropy() {
     const gl = this.renderer.context;
     const type = this.getGLTextureType();
-    
+
     let aniso_ext = this.renderer.getExtension('EXT_texture_filter_anisotropic');
 
     if(!aniso_ext) {
@@ -417,19 +455,15 @@ export default class Texture extends Asset {
     gl.texParameterf(type, aniso_ext.ext.TEXTURE_MAX_ANISOTROPY_EXT, Math.max(level, 1));
   };
 
-  bind() {
-    this.applyParameters();
-  }
-
   handleImageLoad() {
     this.assignImage();
 
     this.setState(STATE.LOAD_COMPLETE);
   }
-  
+
   handleCubemapImageLoad(index) {
     this.images[index].loaded = true;
-    
+
     for(let image of this.images) {
       if(!image.loaded) {
         return;
@@ -439,7 +473,7 @@ export default class Texture extends Asset {
     if(this.state === STATE.LOAD_ERROR) {
       return;
     }
-    
+
     this.assignImage();
 
     this.setState(STATE.LOAD_COMPLETE);
@@ -447,7 +481,7 @@ export default class Texture extends Asset {
 
   handleImageError(e) {
     Logger.warn(`Image '${e.target.src}' could not be fetched.`, e);
-    
+
     this.setState(STATE.LOAD_ERROR);
   }
 }

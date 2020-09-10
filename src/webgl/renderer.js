@@ -8,7 +8,7 @@ import {vec2, vec4} from 'gl-matrix';
 import Loader, {Asset, STATE} from './loader.js';
 import Shader from './shader.js';
 import Mesh from './mesh.js';
-import Texture from './texture.js';
+import Texture, {FORMAT} from './texture.js';
 
 import {BLEND, DEPTH} from './material.js';
 
@@ -23,7 +23,7 @@ export default class Renderer extends Asset {
 
     // Set up the asset loader to allow our state to change at will.
     this.can_move_backwards = true;
-    
+
     this.canvas = canvas;
 
     // Set to `true` to disable rendering except when resizing.
@@ -31,13 +31,13 @@ export default class Renderer extends Asset {
 
     // This is set when the renderer needs to re-draw.
     this.draw_required = false;
-    
+
     this.options = {
       max_anisotropy_level: 16,
       scale: 1,
       ...(options ? options : {})
     };
-    
+
     this.context = null;
 
     // The size of the canvas.
@@ -58,6 +58,8 @@ export default class Renderer extends Asset {
       depth_mode: null,
     };
 
+    this.has_loaded = false;
+
     this.performance = {
       vertex_count: 0,
       draw_call_count: 0,
@@ -76,7 +78,7 @@ export default class Renderer extends Asset {
     // A shader is not valid just because it is in this list; make sure
     // to check `shader.isReady()` first.
     this.shaders = {};
-    
+
     // Contains all the meshes.
     this.meshes = {};
 
@@ -98,7 +100,7 @@ export default class Renderer extends Asset {
 
   init() {
     Logger.debug("Initializing WebGL renderer...");
-    
+
     this.setState(STATE.LOADING);
 
     const VALID_WEBGL_OPTIONS = [
@@ -112,7 +114,7 @@ export default class Renderer extends Asset {
       'preserveDrawingBuffer',
       'stencil'
     ];
-    
+
     let webgl_options = {};
 
     for(let option_key of Object.keys(this.options)) {
@@ -166,10 +168,13 @@ export default class Renderer extends Asset {
       this.textures
     ]));
 
-    if(this.isLoaded()) {
-      this.emit('loaded', {
+    if(this.isLoaded() && !this.has_loaded) {
+      this.has_loaded = true;
+
+      this.emit('loadcomplete', {
         renderer: this
       });
+
       Logger.info(`All initial assets for this renderer are loaded.`);
     }
   }
@@ -187,7 +192,7 @@ export default class Renderer extends Asset {
     if(this.options[name] === value) {
       return;
     }
-    
+
     this.options[name] = value;
 
     this.flagDirty();
@@ -208,7 +213,7 @@ export default class Renderer extends Asset {
 
   initExtensions() {
     const gl = this.context;
-    
+
     let aniso_ext = this.getExtension('EXT_texture_filter_anisotropic', 'MOZ_EXT_texture_filter_anisotropic', 'WEBKIT_EXT_texture_filter_anisotropic');
 
     if(aniso_ext) {
@@ -221,7 +226,7 @@ export default class Renderer extends Asset {
       const gl = this.context;
 
       this.extensions[name] = null;
-      
+
       for(let i=0; i<arguments.length; i++) {
         let extension = gl.getExtension(arguments[i]);
 
@@ -229,12 +234,12 @@ export default class Renderer extends Asset {
           this.extensions[name] = {
             ext: extension
           };
-          
+
           break;
         }
       }
     }
-    
+
     return this.extensions[name];
   }
 
@@ -255,7 +260,7 @@ export default class Renderer extends Asset {
     }, [
       [0, 1, 2]
     ]);
-    
+
     let square = this.createMesh('@square');
     square.createMesh({
       aPosition: [
@@ -273,6 +278,11 @@ export default class Renderer extends Asset {
   initTextures() {
     this.createTexture('@fallback').setFromColor(vec4.fromValues(0.0, 1.0, 1.0, 1.0));
     this.createTexture('@fallback-cube').setFromCheckerCubemap(vec4.fromValues(0.0, 1.0, 1.0, 1.0), vec4.fromValues(0.0, 0.0, 0.0, 1.0), 64, 8);
+
+    this.createTexture('@fallback-normal').setFromColor(vec4.fromValues(0.5, 0.5, 1.0, 1.0));
+    this.createTexture('@fallback-cube-normal').setFromShaderCubemap(64, FORMAT.RGB, (coord) => {
+      return vec4.fromValues(coord[0] * 0.5 + 0.5, coord[1] * 0.5 + 0.5, coord[2] * 0.5 + 0.5, 1.0);
+    });
   }
 
   initCanvas() {
@@ -282,7 +292,7 @@ export default class Renderer extends Asset {
     // Set up the clear color.
     let gl = this.context;
     gl.clearColor(0.0, 0.3, 0.0, 1.0);
-    
+
     gl.clearDepth(1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
@@ -300,7 +310,7 @@ export default class Renderer extends Asset {
     }
 
     this.shaders = {};
-    
+
     for(let name of Object.keys(this.meshes)) {
       this.meshes[name].deinit();
     }
@@ -313,9 +323,9 @@ export default class Renderer extends Asset {
       Logger.warn(`Duplicate shader '${name}' is being requested; deleting existing shader.`);
       this.shaders[name].deinit();
     }
-    
+
     Logger.debug(`Creating shader '${name}'...`);
-    
+
     let shader = new Shader(this, name, vertex_source, fragment_source);
 
     shader.init();
@@ -340,9 +350,9 @@ export default class Renderer extends Asset {
       Logger.warn(`Duplicate mesh '${name}' is being requested; deleting existing mesh.`);
       this.meshes[name].deinit();
     }
-    
+
     Logger.debug(`Creating mesh '${name}'...`);
-    
+
     let mesh = new Mesh(this, name);
 
     this.meshes[name] = mesh;
@@ -365,9 +375,9 @@ export default class Renderer extends Asset {
       Logger.warn(`Duplicate texture '${name}' is being requested; deleting existing texture.`);
       this.textures[name].deinit();
     }
-    
+
     Logger.debug(`Creating texture '${name}'...`);
-    
+
     let texture = new Texture(this, name);
     texture.init();
 
@@ -375,17 +385,16 @@ export default class Renderer extends Asset {
 
     return texture;
   }
-  
+
   getTexture(name) {
     if(this.textures.hasAsset(name)) {
-      if(this.textures.getAsset(name).isReady()) {
-        return this.textures.getAsset(name);
-      }
+      return this.textures.getAsset(name);
     } else {
       //Logger.warn(`No such texture '${name}'`);
     }
 
-    return this.textures.getAsset('@fallback');
+    // The fallback resolution is performed by the shader, not the renderer.
+    return null;
   }
 
   // Automatically copies the size from the parent element of the canvas.
@@ -403,7 +412,7 @@ export default class Renderer extends Asset {
 
     this.flagDirty();
     this.draw_required = true;
-    
+
     Logger.debug(`Resizing renderer to ${this.size} @ ${this.dpi}x`);
   }
 
@@ -423,7 +432,7 @@ export default class Renderer extends Asset {
     }
 
     this.active.blend_mode = blend_mode;
-    
+
     switch(blend_mode) {
     case BLEND.OPAQUE:
       //Logger.debug('Switching to blend mode OPAQUE');
@@ -447,7 +456,7 @@ export default class Renderer extends Asset {
     }
 
     this.active.depth_mode = depth_mode;
-    
+
     switch(depth_mode) {
     case DEPTH.IGNORE:
       //Logger.debug('Switching to depth mode IGNORE');
@@ -484,7 +493,7 @@ export default class Renderer extends Asset {
     }
 
     // Only defer drawing when we're not loaded if we haven't drawn yet.
-    if(!this.isLoaded() && this.performance.current_frame <= 1) {
+    if(!this.has_loaded) {
       return false;
     }
 
@@ -566,12 +575,12 @@ export default class Renderer extends Asset {
       return true;
     } catch(err) {
       // There should be *zero* errors above. If there are, we terminate instantly.
-      
+
       Logger.error(`Error occurred during render loop. Terminating render loop.`, err);
       Logger.trace(`Trace of above error`, err);
-      
+
       this.terminate_drawing = true;
-      
+
       this.emit('error', {
         error: err,
         renderer: this
@@ -583,10 +592,10 @@ export default class Renderer extends Asset {
 
   draw() {
     const gl = this.context;
-    
+
     //this.setBlendMode(BLEND.OPAQUE);
     //this.setDepthMode(DEPTH.READ_WRITE);
-    
+
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     gl.viewport(0, 0, this.size[0] * this.dpi, this.size[1] * this.dpi);
