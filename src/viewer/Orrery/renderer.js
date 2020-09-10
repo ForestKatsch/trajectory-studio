@@ -156,16 +156,19 @@ export default class OrreryRenderer extends Renderer {
     
     atmosphere.scale = vec3.fromValues(atmosphere_diameter, atmosphere_diameter, atmosphere_diameter);
 
+    let mie_strength = 200;
+    let mie_power = 400;
+
     // Set up the scaling.
     let atmosphere_scatter_color = vec4.fromValues(10, 20, 40);
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 1 / 4);
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 7.0);
-    atmosphere_scatter_color[3] = 10;
-    
-    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / atmosphere_diameter / 2, 1 / 2, 20, 150));
+    atmosphere_scatter_color[3] = mie_power;
+
+    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / atmosphere_diameter / 2, 1 / 2, 20, mie_strength));
     atmosphere.setUniform('uAtmosphereRaleighScatter', atmosphere_scatter_color);
 
-    earth.setUniform('uAtmosphereParameters', vec4.fromValues(1 / 2, atmosphere_diameter / 2, 20, 150));
+    earth.setUniform('uAtmosphereParameters', vec4.fromValues(1 / 2, atmosphere_diameter / 2, 20, mie_strength));
     earth.setUniform('uAtmosphereRaleighScatter', atmosphere_scatter_color);
 
     this.atmosphere = atmosphere;
@@ -214,8 +217,8 @@ export default class OrreryRenderer extends Renderer {
   }
   
   createQuadspheres() {
-    createQuadsphere(this, 'quadsphere', 24);
-    createQuadsphere(this, 'atmosphere', 8, true);
+    createQuadsphere(this, 'quadsphere', 20);
+    createQuadsphere(this, 'atmosphere', 2, true);
   }
 
   setInputValues(values) {
