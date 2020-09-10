@@ -17,6 +17,8 @@ varying vec3 vPosition;
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
 
+varying vec3 vAtmosphereColor;
+
 #import "./include.glsl";
 #import "./atmosphere.glsl";
 

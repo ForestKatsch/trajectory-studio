@@ -29,6 +29,7 @@ varying vec3 vNormal;
 varying vec3 vAtmosphereColor;
 
 #import "./include.glsl";
+#import "./atmosphere.glsl";
 
 void main() {
   vPosition = aPosition;
@@ -41,4 +42,12 @@ void main() {
   gl_Position = depthBufferLogVert(gl_Position, 1.0, uCameraData.y);
 
   vScreenPosition = gl_Position.xyz / gl_Position.w;
+
+  // Compute the atmosphere in vertex-space.
+  vec3 dir_starModel = worldToModelDirection(getDirectionStar());
+  vec3 dir_viewModel = worldToModelDirection(getDirectionView());
+  
+  vec3 pos_cameraModel = (uWorldMatrix_i * vec4(uViewMatrix_i[3].xyz, 1.0)).xyz;
+  
+  vAtmosphereColor = atmospherePlanetColor(pos_cameraModel, dir_viewModel, dir_starModel, uStarColor, uAtmosphereParameters, uAtmosphereRaleighScatter, 0.6);
 }

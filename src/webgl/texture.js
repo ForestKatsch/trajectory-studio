@@ -1,5 +1,5 @@
 
-import {vec4} from 'gl-matrix';
+import {vec2, vec4} from 'gl-matrix';
 
 import {TYPE} from './shader.js';
 import {flatten} from './mesh.js';
@@ -93,6 +93,45 @@ export default class Texture extends Asset {
     gl.texImage2D(type, 0, format, width, height, 0, format, gl.UNSIGNED_BYTE, data);
     
     this.setState(STATE.LOAD_COMPLETE);
+    
+    return this;
+  }
+
+  // `Shader` is a function that is given `x` and `y` coordinates as a `vec2`, and returns a `vec4`
+  // as RGBA 0..1.
+  setFromShader(width, height, shader) {
+    this.setFromColorInit(TYPE.TEXTURE_2D);
+    
+    const gl = this.renderer.context;
+    
+    const format = gl.RGBA;
+    
+    let data = [];
+
+    let coordinates = vec2.create();
+    let color = vec4.create();
+    
+    for(let i=0; i<width*height; i++) {
+      vec2.set(coordinates, (i % width) / width, (Math.floor(i / width)) / width);
+      
+      color = shader(coordinates);
+      vec4.scale(color, color, 255);
+      
+      data.push.apply(data, color);
+    }
+
+    let type = this.getGLTextureType();
+
+    gl.bindTexture(type, this.texture);
+    gl.texImage2D(type, 0, format, width, height, 0, format, gl.UNSIGNED_BYTE, new Uint8Array(flatten(data)));
+    
+    gl.generateMipmap(type);
+
+    this.applyParameters();
+    
+    this.setState(STATE.LOAD_COMPLETE);
+
+    return this;
   }
 
   createCheckerData(colora, colorb, size, cell_size) {

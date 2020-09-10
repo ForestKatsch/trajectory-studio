@@ -1,4 +1,9 @@
 
+// # `Atmosphere`
+//
+// The most difficult part of any Elitedangerouslike game is the atmosphere. Definitely not anything else.
+// So here's some functions to render atmospheres.
+
 // Raycasting.
 
 // Returns a vec4 containing <distance to start (sphere entry)>, <distance from entry (or camera) to exit>, <angle-of-incidence>, <chord length>
@@ -79,7 +84,7 @@ float atmosphereDensityAtPoint(vec3 position, vec4 param_atmosphere) {
   return atmosphereDensityAtAltitude(altitude, param_atmosphere);
 }
 
-const int OPTICAL_DEPTH_STEPS = 12;
+const int OPTICAL_DEPTH_STEPS = 8;
 
 // Returns the optical depth of a ray.
 // TODO: optimize this with a texture lookup.
@@ -96,7 +101,7 @@ float atmosphereOpticalDepth(vec3 position, vec3 direction, float ray_length, ve
   return opticalDepth;
 }
 
-const int SCATTERING_STEPS = 6;
+const int SCATTERING_STEPS = 8;
 
 // Calculates the color along the ray given by `position` and `direction`.
 // All coordinates and positions are in model-space, and assume the planet is at [0, 0].
@@ -164,6 +169,7 @@ vec3 atmosphereColorRay(vec3 position, vec3 direction, float length_ray, vec3 di
   return color;
 }
 
+// Returns the color of a point in the atmosphere. Ignores the planet for better blending.
 vec3 atmosphereSkyColor(vec3 position, vec3 direction, vec3 dir_star, vec3 color_star, vec4 param_atmosphere, vec4 param_raleigh) {
   float atmosphereRadius = param_atmosphere.y;
 
@@ -180,6 +186,7 @@ vec3 atmosphereSkyColor(vec3 position, vec3 direction, vec3 dir_star, vec3 color
   return atmosphereColorRay(pos_viewRayStart, direction, length_viewRay, dir_star, color_star, param_atmosphere, param_raleigh, 0.98);
 }
 
+// Returns the color of a point on the planet's surface.
 vec3 atmospherePlanetColor(vec3 position, vec3 direction, vec3 dir_star, vec3 color_star, vec4 param_atmosphere, vec4 param_raleigh, float sample_curve) {
   float planetRadius = param_atmosphere.x;
   float atmosphereRadius = param_atmosphere.y;

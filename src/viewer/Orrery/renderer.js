@@ -12,6 +12,7 @@ import default_vert from './shaders/default.vert';
 import star_frag from './shaders/star.frag';
 import earth_frag from './shaders/earth.frag';
 
+import atmosphere_body_vert from './shaders/atmosphere-body.vert';
 import atmosphere_frag from './shaders/atmosphere.frag';
 
 export default class OrreryRenderer extends Renderer {
@@ -34,6 +35,19 @@ export default class OrreryRenderer extends Renderer {
         anisotropy_level: 16
       });
     
+    this.createTexture('atmosphere-thickness-lut')
+      .setFromShader(64, 64, (coord) => {
+        let dotToThickness = (value, radius) => {
+          return Math.sqrt(1 - Math.pow(1 - (value * radius), 2));
+        };
+        
+        return vec4.fromValues(dotToThickness(coord[0], 1) - dotToThickness(coord[0], coord[1]), 0, 0, 1);
+      })
+      .setParameters({
+        wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
+        anisotropy_level: 16
+      });
+    
     this.createTexture('stellar-body-earth-normal-cube')
       .loadCubemap('static/stellar/bodies/earth/normal-{id}.jpg')
       .setParameters({
@@ -50,7 +64,7 @@ export default class OrreryRenderer extends Renderer {
         });
     }, 0);
 
-    this.createShader('earth', default_vert, earth_frag);
+    this.createShader('earth', atmosphere_body_vert, earth_frag);
     this.createShader('star', default_vert, star_frag);
     
     this.createShader('atmosphere', default_vert, atmosphere_frag);
@@ -84,6 +98,8 @@ export default class OrreryRenderer extends Renderer {
     earth_material.set('uNormalCube', 'stellar-body-earth-normal-cube');
     earth_material.set('uLandinfoCube', 'stellar-body-earth-landinfo-cube');
     earth_material.set('uColorCube', 'stellar-body-earth-color-cube');
+
+    earth_material.set('uAtmosphereThickness', 'atmosphere-thickness-lut');
     
     this.scene.root.add(earth);
     
@@ -151,7 +167,7 @@ export default class OrreryRenderer extends Renderer {
   }
   
   createQuadspheres() {
-    this.createQuadsphere('quadsphere', 32);
+    this.createQuadsphere('quadsphere', 24);
     this.createQuadsphere('atmosphere', 8, true);
   }
 
@@ -297,6 +313,7 @@ export default class OrreryRenderer extends Renderer {
     this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) * 100000000, 20000000, Math.cos(now / 10.0) *100000000));
     //this.scene.setUniform('uStarPosition', vec3.fromValues(0, 900000000, 300000000));
     this.scene.setUniform('uStarColor', vec3.fromValues(1, 0.95, 0.9));
+    //this.scene.setUniform('uStarColor', vec3.fromValues(0.2, 0.5, 1.0));
     quat.fromEuler(this.earth.rotation, 0, now * 0.5, 0);
 
     this.paused = this.options.paused;

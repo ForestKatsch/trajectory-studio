@@ -10,6 +10,8 @@ uniform vec3 uStarColor;
 uniform vec4 uAtmosphereParameters;
 uniform vec4 uAtmosphereRaleighScatter;
 
+uniform sampler2D uAtmosphereThickness;
+
 uniform samplerCube uLandinfoCube;
 uniform samplerCube uNormalCube;
 uniform samplerCube uColorCube;
@@ -24,6 +26,8 @@ varying vec3 vNormal;
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
 varying vec3 vViewNormal;
+
+varying vec3 vAtmosphereColor;
 
 const float PI = 3.141592653;
 const float PI_2 = 6.28318530;
@@ -40,6 +44,9 @@ void main() {
 
   // The computed normal from the cubemap.
   vec3 dir_worldNormal = modelToWorldDirection(normalFromCubemap(uNormalCube, coord_cubemap));
+
+  //gl_FragColor = vec4(vec3(1.0) * dot(-dir_worldNormal, dir_view), 1.0);
+  //gl_FragColor = vec4(vec3(1.0) * dot(-dir_worldNormal, dir_view), 1.0);
 
   // This special function ensures that the normal map doesn't have mountains lit up if they're behind the body.
   float frac_starExposure = min(dot(dir_worldNormal, dir_star), pow(dot(vWorldNormal, dir_star), 0.2));
@@ -88,15 +95,7 @@ void main() {
   // And finally, mix in the clouds on top.
   mat_color = mix(mat_color, color_cloud, frac_cloudCover);
 
-  // Get the model-space directions for the view and star.
-  vec3 dir_starModel = worldToModelDirection(getDirectionStar());
-  vec3 dir_viewModel = worldToModelDirection(getDirectionView());
-
-  // ANd get the model-space position of the camera.
-  vec3 pos_cameraModel = (uWorldMatrix_i * vec4(uViewMatrix_i[3].xyz, 1.0)).xyz;
-
-  vec3 mat_atmosphere = atmospherePlanetColor(pos_cameraModel, dir_viewModel, dir_starModel, uStarColor, uAtmosphereParameters, uAtmosphereRaleighScatter, 0.6);
+  vec3 mat_atmosphere = vAtmosphereColor;
     
   gl_FragColor = vec4(mat_atmosphere + mat_color, 1.0);
-
 }
