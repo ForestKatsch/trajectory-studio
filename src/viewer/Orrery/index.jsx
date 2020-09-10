@@ -10,7 +10,7 @@ import Navigation from './navigation.js';
 import EmptyState from '../../components/display/Empty.jsx';
 
 import Switch from '../../components/interactive/Switch.jsx';
-import Select from '../../components/interactive/Select.jsx';
+//import Select from '../../components/interactive/Select.jsx';
 import CircularProgress from '../../components/progress/Circular.jsx';
 
 import './style.css';

@@ -279,15 +279,11 @@ export default class OrreryRenderer extends Renderer {
   }
   
   updateFromInput() {
-    let body_radius = this.getFocusBody().scale[0] / 2;
-
     let transition_value = this.transition_focus_position.getValue();
     
     this.camera_focus.position = transition_value.position;
 
     this.camera.position = vec3.fromValues(0, 0, this.input.distance + transition_value.minimum_distance);
-
-    let heading_factor = 0.3;
 
     //console.log(values.heading);
 

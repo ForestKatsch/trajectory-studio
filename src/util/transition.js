@@ -1,6 +1,5 @@
 
-import Logger from 'js-logger';
-import {vec3} from 'gl-matrix';
+//import Logger from 'js-logger';
 
 export class Transition {
 
@@ -69,8 +68,6 @@ export default class TransitionManager {
     if(this.transitions.length === 0) {
       return this.initial_value;
     }
-
-    let value = this.initial_value;
 
     //Logger.debug(`Transition influences: ${this.transitions.map((transition) => transition.influence.toString()).join(', ')}`);
     
