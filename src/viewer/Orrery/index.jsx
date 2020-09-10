@@ -5,6 +5,7 @@ import AnimateHeight from 'react-animate-height';
 import Logger from 'js-logger';
 
 import OrreryRenderer from './renderer.js';
+import Navigation from './navigation.js';
 
 import EmptyState from '../../components/display/Empty.jsx';
 
@@ -37,43 +38,21 @@ class OrreryViewer extends React.Component {
       stats_frame_count: 0,
     };
 
+    this.handleRendererUpdateBefore = this.handleRendererUpdateBefore.bind(this);
     this.handleRendererStateChanged = this.handleRendererStateChanged.bind(this);
     this.handleWindowResize = this.handleWindowResize.bind(this);
     
     this.canvas = React.createRef();
     this.renderer = null;
+    this.navigation = null;
   }
 
   componentDidMount() {
     this.renderer = new OrreryRenderer(this.canvas.current);
+    this.navigation = new Navigation(this.canvas.current);
 
-    this.initRenderer();
-
-    window.addEventListener('resize', this.handleWindowResize)
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.handleWindowResize)
-
-    this.deinitRenderer();
-  }
-
-  handleWindowResize() {
-    this.renderer.resize();
-  }
-
-  handleRendererStateChanged(event) {
-    if(!this.renderer.isLoaded()) {
-      return;
-    }
-
-    this.setState((state, props) => ({
-      loaded: true
-    }));
-  }
-
-  initRenderer() {
     try {
+      this.renderer.on('updatebefore', this.handleRendererUpdateBefore);
       this.renderer.on('statechange', this.handleRendererStateChanged);
       this.renderer.init();
       this.renderer.viewer = this;
@@ -86,10 +65,39 @@ class OrreryViewer extends React.Component {
 
       return;
     }
+
+    window.addEventListener('resize', this.handleWindowResize)
   }
 
-  deinitRenderer() {
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleWindowResize)
+    this.renderer.off('updatebefore', this.handleRendererUpdateBefore);
+    
     this.renderer.deinit();
+    
+    this.navigation.destroy();
+  }
+
+  handleWindowResize() {
+    this.renderer.resize();
+  }
+
+  // Called before the renderer begins its update.
+  handleRendererUpdateBefore(event) {
+    let values = this.navigation.getValues();
+
+    this.navigation.resetValues();
+    this.renderer.setInputValues(values);
+  }
+
+  handleRendererStateChanged(event) {
+    if(!this.renderer.isLoaded()) {
+      return;
+    }
+
+    this.setState((state, props) => ({
+      loaded: true
+    }));
   }
 
   createSwitchHandler(name) {
@@ -160,7 +168,7 @@ class OrreryViewer extends React.Component {
               <li>{this.state.stats_frame_count} frames</li>
               <li className="OrreryViewer__progress">
                 <span>Render</span>
-                <CircularProgress step={this.state.stats_frame_count} />
+                <CircularProgress step={this.state.stats_frame_count + 1} />
               </li>
             </ul>
           </AnimateHeight>

@@ -35,8 +35,18 @@ export default class Material {
     this.scene.flagDirty();
   }
 
-  set(name, value) {
+  setUniforms(uniforms) {
+    for(let key of Object.keys(uniforms)) {
+        this.uniforms.set(key, uniforms[key]);
+    }
+    
+    return this;
+  }
+  
+  setUniform(name, value) {
     this.uniforms.set(name, value);
+
+    return this;
   }
 
 }

@@ -29,8 +29,8 @@ export default class Renderer extends Asset {
     // Set to `true` to disable rendering except when resizing.
     this.paused = false;
 
-    // This is set when the renderer needs to re-render.
-    this.render_required = false;
+    // This is set when the renderer needs to re-draw.
+    this.draw_required = false;
     
     this.options = {
       max_anisotropy_level: 16,
@@ -158,7 +158,7 @@ export default class Renderer extends Asset {
     this.handleLoaderStateChange();
 
     // And kick off the first frame.
-    requestAnimationFrame(this.render.bind(this));
+    requestAnimationFrame(this.tick.bind(this));
   }
 
   handleLoaderStateChange() {
@@ -399,7 +399,7 @@ export default class Renderer extends Asset {
     this.canvas.height = this.size[1] * this.dpi;
 
     this.flagDirty();
-    this.render_required = true;
+    this.draw_required = true;
     
     Logger.debug(`Resizing renderer to ${this.size} @ ${this.dpi}x`);
   }
@@ -466,21 +466,21 @@ export default class Renderer extends Asset {
     }
   }
 
-  // If we should render this frame or not.
-  shouldRender() {
-    // If we don't need to re-render, then don't.
-    if(!this._dirty && !this.render_required) {
+  // If we should draw this frame or not.
+  shouldDraw() {
+    // If we don't need to re-draw, then don't.
+    if(!this._dirty && !this.draw_required) {
       if(!(this.scene && this.scene._dirty)) {
         this.performance.frame_start = -1;
         return false;
       }
     }
 
-    if(this.paused && !this.render_required) {
+    if(this.paused && !this.draw_required) {
       return false;
     }
 
-    // Only defer rendering when we're not loaded if we haven't rendered yet.
+    // Only defer drawing when we're not loaded if we haven't drawn yet.
     if(!this.isLoaded() && this.performance.current_frame <= 1) {
       return false;
     }
@@ -488,51 +488,63 @@ export default class Renderer extends Asset {
     return true;
   }
 
-  // The primary render function. This handles everything about rendering, from start to finish.
-  render() {
+  // The primary loop function. This handles everything about the draw loop, from start to finish.
+  tick() {
     // If we've been deinitialized, bail out.
-    if(this.context === null || this.terminate_rendering) {
+    if(this.context === null || this.terminate_drawing) {
       return false;
     }
 
-    requestAnimationFrame(this.render.bind(this));
+    requestAnimationFrame(this.tick.bind(this));
 
     try {
+      this.emit('tickbefore', {
+        renderer: this
+      });
+
+      this.emit('updatebefore', {
+        renderer: this
+      });
+
       if(this.scene !== null) {
         this.scene.update(this);
       }
 
-      if(!this.shouldRender()) {
+      this.emit('updateafter', {
+        renderer: this
+      });
+
+      if(!this.shouldDraw()) {
         return false;
       }
-      
+
       this._dirty = false;
-      this.render_required = false;
-      
-      let gl = this.context;
-      
-      this.setBlendMode(BLEND.OPAQUE);
-      this.setDepthMode(DEPTH.READ_WRITE);
-      
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      this.draw_required = false;
 
-      gl.viewport(0, 0, this.size[0] * this.dpi, this.size[1] * this.dpi);
-
+      // Set these values to zero so they only contain data for this frame.
       this.performance.vertex_count = 0;
       this.performance.draw_call_count = 0;
-      
-      if(this.scene !== null) {
-        this.scene.draw(this);
-      } else {
-        Logger.warn(`No scene to draw, skipping...`);
-      }
-      
+
+      this.emit('drawbefore', {
+        renderer: this
+      });
+
+      // It does what it says.
+      this.draw();
+
+      this.emit('drawafter', {
+        renderer: this
+      });
+
+      // Calculate performance.
       let end = Date.now() / 1000;
 
+      // Only update if we've rendered at least one frame.
       if(this.performance.frame_start > 0) {
         this.performance.frametime_total += end - this.performance.frame_start;
         this.performance.frametime_samples += 1;
-        
+
+        // Every 8 frames, update the FPS and reset the stats for FPS.
         if(this.performance.frametime_samples > 8) {
           this.performance.fps = this.performance.frametime_samples / this.performance.frametime_total;
 
@@ -542,13 +554,44 @@ export default class Renderer extends Asset {
       }
 
       this.performance.frame_start = end;
-      
       this.performance.current_frame += 1;
 
+      this.emit('tickafter', {
+        renderer: this
+      });
+
       return true;
-    } catch(e) {
-      this.terminate_rendering = true;
-      throw e;
+    } catch(err) {
+      // There should be *zero* errors above. If there are, we terminate instantly.
+      
+      Logger.error(`Error occurred during render loop. Terminating render loop.`, err);
+      Logger.trace(`Trace of above error`, err);
+      
+      this.terminate_drawing = true;
+      
+      this.emit('error', {
+        error: err,
+        renderer: this
+      });
+
+      throw err;
+    }
+  }
+
+  draw() {
+    const gl = this.context;
+    
+    //this.setBlendMode(BLEND.OPAQUE);
+    //this.setDepthMode(DEPTH.READ_WRITE);
+    
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.viewport(0, 0, this.size[0] * this.dpi, this.size[1] * this.dpi);
+
+    if(this.scene !== null) {
+      this.scene.draw(this);
+    } else {
+      Logger.warn(`No scene to draw, skipping...`);
     }
   }
 

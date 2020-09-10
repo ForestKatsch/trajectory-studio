@@ -184,12 +184,14 @@ export class CameraData extends SpatialData {
 
 }
 
+let spatial_count = 0;
+
 // # `Spatial`
 //
 // The `Spatial` class represents an object in 3D space, optionally with a mesh attached.
 export default class Spatial {
 
-  constructor(scene, name) {
+  constructor(scene) {
     // The following variables are all in local space.
     this.position = vec3.create();
     this.rotation = quat.create();
@@ -204,7 +206,7 @@ export default class Spatial {
     // Set to false to hide this spatial object and all its children.
     this.enabled = true;
     
-    this.name = name;
+    this.name = `spatial-0x${(spatial_count++).toString(16).padStart(4, '0')}`;
 
     this.parent = null;
     this.children = [];
@@ -215,6 +217,12 @@ export default class Spatial {
     this._data = null;
 
     this.uniforms = new Uniforms(this.flagDirty.bind(this));
+  }
+
+  setName(name) {
+    this.name = name;
+
+    return this;
   }
 
   flagDirty() {
@@ -229,6 +237,10 @@ export default class Spatial {
     }
   }
 
+  // ## Update Functions
+  //
+  // These should only be called by the renderer and/or the scene.
+
   // Called before drawing; this function updates the scene tree.
   update(renderer) {
     if(!this.enabled) {
@@ -242,7 +254,6 @@ export default class Spatial {
     for(let child of this.children) {
       child.update(renderer);
     }
-
   }
 
   updateRenderSort() {
@@ -337,6 +348,8 @@ export default class Spatial {
     data.scene = this.scene;
 
     this._data = data;
+
+    return this;
   }
 
   getData(type) {
@@ -371,6 +384,10 @@ export default class Spatial {
 
   // Adds a child.
   add(child) {
+    if(!child) {
+      Logger.warn(`Tried to add falsy object as child of '${this.name}'`, child);
+    }
+    
     Logger.debug(`Adding spatial object '${child.name}' to parent '${this.name}'`);
     this.children.push(child);
 
