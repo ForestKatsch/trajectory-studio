@@ -219,6 +219,13 @@ export default class Spatial {
     this.uniforms = new Uniforms(this.flagDirty.bind(this));
   }
 
+  getWorldPosition() {
+    let position = vec3.create();
+    mat4.getTranslation(position, this.world_matrix);
+
+    return position;
+  }
+
   setName(name) {
     this.name = name;
 

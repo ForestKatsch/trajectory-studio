@@ -16,17 +16,37 @@ import earth_frag from './shaders/earth.frag';
 import atmosphere_body_vert from './shaders/atmosphere-body.vert';
 import atmosphere_frag from './shaders/atmosphere.frag';
 
+import TransitionManager, {Transition} from '../../util/transition.js';
+
 export default class OrreryRenderer extends Renderer {
 
   init() {
     this.options.desynchronized = true;
 
     this.input = {
-      heading: 90,
+      heading: 135,
       pitch: 0,
-      distance: 0
+      distance: 0,
+
+      focus: null,
     };
-    
+
+    this.transition_focus_position = new TransitionManager({
+      position: vec3.create(),
+      minimum_distance: 0,
+    }, (from, to, fraction) => {
+      let value = vec3.create();
+
+      vec3.lerp(value, from.position, to.position, fraction);
+
+      return {
+        position: value,
+        minimum_distance: (from.minimum_distance * (1 - fraction) + to.minimum_distance * fraction)
+      };
+    });
+
+    this.options.focus_blend_time = 1;
+      
     super.init();
   }
 
@@ -222,12 +242,34 @@ export default class OrreryRenderer extends Renderer {
     this.context.clearColor(0.0, 0.0, 0.0, 1.0);
   }
 
+  setFocusBody(name) {
+    if(this.input.focus === name) {
+      return;
+    }
+
+    this.input.focus = name;
+
+    let focus_body = this.getFocusBody();
+    
+    this.transition_focus_position.push(new Transition({
+      position: focus_body.getWorldPosition(),
+      minimum_distance: focus_body.scale[0] / 2 * 1.2 + 20 * 1000
+    }, 5.0 * Math.pow(this.transition_focus_position.getCurrentFraction(), 1)));
+  }
+
   getFocusBody() {
     if(this.input.focus === 'sun') {
       return this.sun;
     } else {
       return this.earth;
     }
+  }
+
+  setInput(new_input) {
+    for(let key of Object.keys(new_input)) {
+      this.input[key] = new_input[key];
+    }
+    
   }
 
   getCameraInfo() {
@@ -239,21 +281,16 @@ export default class OrreryRenderer extends Renderer {
   updateFromInput() {
     let body_radius = this.getFocusBody().scale[0] / 2;
 
-    let minimum_distance = body_radius * 1.2 + 20 * 1000;
+    let transition_value = this.transition_focus_position.getValue();
     
-    this.camera.position = vec3.fromValues(0, 0, this.input.distance + minimum_distance);
+    this.camera_focus.position = transition_value.position;
+
+    this.camera.position = vec3.fromValues(0, 0, this.input.distance + transition_value.minimum_distance);
 
     let heading_factor = 0.3;
 
-
     //console.log(values.heading);
 
-    if(this.input.focus === 'sun') {
-      vec3.copy(this.camera_focus.position, this.sun.position);
-    } else {
-      vec3.copy(this.camera_focus.position, this.earth.position);
-    }
-    
     quat.fromEuler(this.camera_focus.rotation, this.input.pitch, this.input.heading, 0);
   }
   

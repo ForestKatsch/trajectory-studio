@@ -40,8 +40,8 @@ class OrreryViewer extends React.Component {
 
       focus: 'earth',
 
-      heading: 0,
-      pitch: 0,
+      heading: 150,
+      pitch: -10,
       distance: 9000 * 1000,
     };
 
@@ -103,7 +103,7 @@ class OrreryViewer extends React.Component {
     let distance = this.state.distance + values.zoom * zoom_factor * (this.renderer.camera.position[2] - body_radius);
     
     let angle_factor = 0.3;
-    angle_factor *= Math.min((this.state.distance - body_radius) / (body_radius * 2), 1.0);
+    angle_factor *= Math.max(Math.min(this.state.distance / (body_radius * 2), 1.0), 0.1);
     
     this.setState((state, props) => ({
       heading: state.heading + values.heading * angle_factor,
@@ -150,15 +150,13 @@ class OrreryViewer extends React.Component {
       this.renderer.setOption('max_anisotropy_level', this.state.use_anisotropy ? 16 : 0);
       this.renderer.setOption('paused', this.state.paused);
 
-      this.renderer.input = {
-        ...this.renderer.input,
-
-        focus: this.state.focus,
+      this.renderer.setFocusBody(this.state.focus);
         
+      this.renderer.setInput({
         heading: this.state.heading,
         pitch: this.state.pitch,
         distance: this.state.distance,
-      };
+      });
     }
     
     return (
