@@ -45,6 +45,8 @@ void main() {
   // The computed normal from the cubemap.
   vec3 dir_worldNormal = modelToWorldDirection(normalFromCubemap(uNormalCube, coord_cubemap));
 
+  dir_worldNormal = normalize(mix(vWorldNormal, dir_worldNormal, 0.3));
+
   /*
   float blend = smoothstep(-0.001, 0.001, vScreenPosition.x);
 
@@ -57,7 +59,7 @@ void main() {
   float frac_starExposure = min(dot(dir_worldNormal, dir_star), pow(clamp(dot(vWorldNormal, dir_star), 0.0, 1.0), 0.75));
 
   // The dark side of the planet will be this bright, as a fraction of full brightness.
-  float frac_brightnessBoost = 0.1;
+  float frac_brightnessBoost = 0.05;
 
   // This includes the color as well.
   vec3 color_starLight = (clamp(frac_starExposure, 0.0, 1.0) * (1.0 - frac_brightnessBoost) + frac_brightnessBoost) * uStarColor;

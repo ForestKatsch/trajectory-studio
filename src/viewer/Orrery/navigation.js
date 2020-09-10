@@ -180,7 +180,7 @@ export class SmoothInput extends Input {
     let now = Date.now() / 1000;
 
     if(this.last_sample_time > 0) {
-      elapsed = this.last_sample_time - now;
+      elapsed = Math.min(this.last_sample_time - now, 0.05);
     }
     
     this.last_sample_time = now;

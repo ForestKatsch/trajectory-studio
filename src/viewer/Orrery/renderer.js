@@ -22,8 +22,9 @@ export default class OrreryRenderer extends Renderer {
     this.options.desynchronized = true;
 
     this.input = {
-      current_heading: 90,
-      current_pitch: 0
+      heading: 90,
+      pitch: 0,
+      distance: 0
     };
     
     super.init();
@@ -67,6 +68,11 @@ export default class OrreryRenderer extends Renderer {
         wrap: [WRAP.CLAMP_TO_EDGE, WRAP.CLAMP_TO_EDGE],
         anisotropy_level: 16
       });
+  }
+
+  createQuadspheres() {
+    createQuadsphere(this, 'quadsphere', 32);
+    createQuadsphere(this, 'atmosphere', 12, true);
   }
 
   createSun() {
@@ -130,7 +136,7 @@ export default class OrreryRenderer extends Renderer {
     earth_material
       .setUniforms({
         'uOceanColor': vec3.fromValues(0.02, 0.17, 0.3),
-        'uNightColor': vec3.fromValues(0.8, 0.55, 0.4),
+        'uNightColor': vec3.fromValues(1.0, 0.8, 0.6),
         'uNormalCube': 'stellar-body-earth-normal-cube',
         'uLandinfoCube': 'stellar-body-earth-landinfo-cube',
         'uColorCube': 'stellar-body-earth-color-cube',
@@ -161,7 +167,7 @@ export default class OrreryRenderer extends Renderer {
     // Set up the scaling.
     let atmosphere_scatter_color = vec4.fromValues(10, 20, 40);
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 1 / 4);
-    vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 7.0);
+    vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 5.0);
     atmosphere_scatter_color[3] = mie_power;
 
     atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / atmosphere_diameter / 2, 1 / 2, 20, mie_strength));
@@ -205,6 +211,7 @@ export default class OrreryRenderer extends Renderer {
       .setData(new CameraData(60, 1, 7500000000*1000));
 
     this.camera.position = vec3.fromValues(0, 0, this.earth.scale[0] * 1.2);
+    //quat.fromEuler(this.camera.rotation, 90, 0, 0);
     //this.camera.position = vec3.fromValues(0, 0, 10);
 
     this.camera_focus.add(this.camera);
@@ -214,42 +221,44 @@ export default class OrreryRenderer extends Renderer {
 
     this.context.clearColor(0.0, 0.0, 0.0, 1.0);
   }
-  
-  createQuadspheres() {
-    createQuadsphere(this, 'quadsphere', 20);
-    createQuadsphere(this, 'atmosphere', 2, true);
+
+  getFocusBody() {
+    if(this.input.focus === 'sun') {
+      return this.sun;
+    } else {
+      return this.earth;
+    }
   }
 
-  setInputValues(values) {
+  getCameraInfo() {
+    return {
+      distance: this.camera.position[2]
+    };
+  }
+  
+  updateFromInput() {
+    let body_radius = this.getFocusBody().scale[0] / 2;
 
-    // Zoom
-    let current_distance = this.camera.position[2];
-    let zoom_factor = 0.002;
-
-    let body_radius = this.earth.scale[0] / 2
-
-    let minimum_distance = body_radius * 1.5;
-
-    let distance = current_distance + values.zoom * zoom_factor * (current_distance - body_radius);
-    distance = Math.max(distance, minimum_distance);
-
-    this.camera.position = vec3.fromValues(0, 0, distance);
+    let minimum_distance = body_radius * 1.2 + 20 * 1000;
+    
+    this.camera.position = vec3.fromValues(0, 0, this.input.distance + minimum_distance);
 
     let heading_factor = 0.3;
 
-    heading_factor *= Math.min((distance - body_radius) / (minimum_distance * 2), 1.0);
-
-    this.input.current_heading += values.heading * heading_factor;
-    this.input.current_pitch += values.pitch * heading_factor;
-    
-    this.input.current_pitch = Math.min(Math.max(this.input.current_pitch, -90), 90);
 
     //console.log(values.heading);
 
-    quat.fromEuler(this.camera_focus.rotation, this.input.current_pitch, this.input.current_heading, 0);
+    if(this.input.focus === 'sun') {
+      vec3.copy(this.camera_focus.position, this.sun.position);
+    } else {
+      vec3.copy(this.camera_focus.position, this.earth.position);
+    }
+    
+    quat.fromEuler(this.camera_focus.rotation, this.input.pitch, this.input.heading, 0);
   }
   
   handleUpdateBefore() {
+    this.updateFromInput();
     //let now = Date.now() / 100;
 
     this.atmosphere.setEnabled(this.options.display_atmospheres);

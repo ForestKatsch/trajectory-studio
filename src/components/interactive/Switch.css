@@ -4,8 +4,16 @@
 
   align-items: center;
   justify-content: center;
-  height: 32px;
-  min-width: 32px;
+  height: var(--widget-size);
+
+  padding: 0 8px;
+  
+  min-width: var(--widget-size);
+
+  --switch-element-height: 12px;
+  --switch-thumb-height: 20px;
+  --switch-element-width: calc(var(--widget-size));
+  --switch-thumb-width: 14px;
 }
 
 .Switch__label {
@@ -23,8 +31,8 @@
   display: block;
   
   border-radius: var(--widget-radius);
-  width: 32px;
-  height: 16px;
+  width: var(--switch-element-width);
+  height: var(--switch-element-height);
   background-color: var(--widget-inset);
   box-shadow: inset 0 0 0 2px var(--widget-inactive-border), inset 0 2px 8px var(--widget-inactive-shadow);
   
@@ -38,11 +46,11 @@
   
   background-color: var(--widget-inactive-highlight);
   border-radius: var(--widget-radius);
-  width: 16px;
-  height: 24px;
-  box-shadow: inset 0 0 0 7px var(--widget-inactive), 0 0 6px 1px var(--widget-inactive-glow);
+  width: var(--switch-thumb-width);
+  height: var(--switch-thumb-height);
+  box-shadow: inset 0 0 0 calc(var(--switch-thumb-width) * 0.5 - 1px) var(--widget-inactive), 0 0 6px 1px var(--widget-inactive-glow);
   left: 0;
-  top: -4px;
+  top: calc((var(--switch-element-height) - var(--switch-thumb-height)) / 2);
 
   transition: transform 0.1s ease-out, background-color 0.05s ease-out;
 }
@@ -56,8 +64,8 @@
 }
 
 .Switch--checked .Switch__element::after {
-  transform: translateX(16px);
+  transform: translateX(calc(var(--switch-element-width) - var(--switch-thumb-width)));
   
   background-color: var(--widget-active-highlight);
-  box-shadow: inset 0 0 0 7px var(--widget-active), 0 0 8px 2px var(--widget-active-glow);
+  box-shadow: inset 0 0 0 calc(var(--switch-thumb-width) * 0.5 - 1px) var(--widget-active), 0 0 8px 2px var(--widget-active-glow);
 }
