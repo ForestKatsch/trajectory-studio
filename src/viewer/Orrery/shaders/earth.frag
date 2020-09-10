@@ -49,7 +49,7 @@ void main() {
   //gl_FragColor = vec4(vec3(1.0) * dot(-dir_worldNormal, dir_view), 1.0);
 
   // This special function ensures that the normal map doesn't have mountains lit up if they're behind the body.
-  float frac_starExposure = min(dot(dir_worldNormal, dir_star), pow(dot(vWorldNormal, dir_star), 0.2));
+  float frac_starExposure = min(dot(dir_worldNormal, dir_star), pow(clamp(dot(vWorldNormal, dir_star), 0.0, 1.0), 0.75));
 
   // The dark side of the planet will be this bright, as a fraction of full brightness.
   float frac_brightnessBoost = 0.1;
