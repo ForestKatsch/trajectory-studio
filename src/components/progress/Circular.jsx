@@ -18,7 +18,7 @@ function CircularProgress(props) {
   let size = props.size || 32;
 
   if(props.step) {
-    angle = props.step * 90 / (props.stepSize || 90 / 4);
+    angle = props.step * (props.stepSize || (90 / 4));
   }
 
   let rotate = {};

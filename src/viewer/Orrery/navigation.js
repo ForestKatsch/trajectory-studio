@@ -180,7 +180,7 @@ export class SmoothInput extends Input {
     let now = Date.now() / 1000;
 
     if(this.last_sample_time > 0) {
-      elapsed = Math.min(this.last_sample_time - now, 0.05);
+      elapsed = Math.min(this.last_sample_time - now, 0.2);
     }
     
     this.last_sample_time = now;
@@ -234,7 +234,9 @@ export default class Navigation {
     };
 
     this.input.smoothing = {
-      zoom: { smoothing: 0.05 }
+      zoom: { smoothing: 0.05 },
+      heading: { smoothing: 0.01 },
+      pitch: { smoothing: 0.01 }
     };
     
     this.input.init();

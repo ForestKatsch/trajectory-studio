@@ -4,6 +4,9 @@ import {vec3, vec4, quat, mat4} from 'gl-matrix';
 import Logger from 'js-logger';
 
 import Orbit from '../../stellar/orbit.js';
+import Body from '../../stellar/body.js';
+import {SolarSystem} from '../../stellar/system.js';
+import {LENGTH, formatLength} from '../../stellar/units.js';
 
 import Renderer from '../../webgl/renderer.js';
 import Scene, {RENDER_ORDER} from '../../webgl/scene.js';
@@ -35,19 +38,11 @@ export default class OrreryRenderer extends Renderer {
       focus: null,
     };
 
+    this.stellar_system = new SolarSystem();
+
     this.bodies = {};
 
-    this.bodies.sun = {
-      orbit: new Orbit(),
-      spatial: null
-    };
-
-    this.bodies.earth = {
-      orbit: new Orbit()
-        .setCircularOrbit(149598023 * 1000)
-        .setPeriodFromMass(5.972 * Math.pow(10, 24) + 1.98847 * Math.pow(10, 30)),
-      spatial: null
-    };
+    this.materials = {};
 
     this.transition_focus_position = new TransitionManager({
       position: vec3.create(),
@@ -87,6 +82,7 @@ export default class OrreryRenderer extends Renderer {
     this.scene = new Scene();
     
     this.createShaders();
+    this.createMaterials();
     this.createQuadspheres();
     
     this.createSun();
@@ -124,6 +120,12 @@ export default class OrreryRenderer extends Renderer {
     createQuadsphere(this, 'atmosphere', 12, true);
   }
 
+  createMaterials() {
+    this.materials.atmosphere = new Material(this.scene, 'atmosphere');
+    this.materials.atmosphere.blend_mode = BLEND.ADD;
+    this.materials.atmosphere.depth_mode = DEPTH.READ_ONLY;
+  }
+
   createSun() {
     this.createShader('stellar-body-sun', default_vert, star_frag);
 
@@ -136,9 +138,13 @@ export default class OrreryRenderer extends Renderer {
       .addTo(this.scene);
 
     let sun_diameter = 1.3927 * 1000000 * 1000;
-    let sun_distance = 149.6 * 1000000 * 1000;
 
-    this.bodies.sun.spatial = sun;
+    this.bodies.sun = {
+      parent: null,
+      orbit: new Orbit(),
+      spatial: sun,
+      body: null
+    };
 
     sun_material.setUniform('uStarColor', vec3.fromValues(1, 0.8, 0.5));
     
@@ -149,26 +155,16 @@ export default class OrreryRenderer extends Renderer {
   createEarth() {
     // Get the textures we need.
     this.createTexture('stellar-body-earth-landinfo-cube')
-      .loadCubemap('static/stellar/bodies/earth/landinfo-{id}.jpg')
-      .setParameters({
-        anisotropy_level: 16
-      });
+      .loadCubemap('static/stellar/bodies/earth/landinfo-{id}.jpg');
     
     this.createTexture('stellar-body-earth-color-cube')
-      .loadCubemap('static/stellar/bodies/earth/color-{id}.jpg')
-      .setParameters({
-        anisotropy_level: 16
-      });
+      .loadCubemap('static/stellar/bodies/earth/color-{id}.jpg');
 
     let normal = this.createTexture('stellar-body-earth-normal-cube')
-        .setFallback('@fallback-cube-normal');
+      .setFallback('@fallback-cube-normal');
 
     this.on('loadcomplete', () => {
-      normal
-        .loadCubemap('static/stellar/bodies/earth/normal-{id}.jpg')
-        .setParameters({
-          anisotropy_level: 16
-        });
+      normal.loadCubemap('static/stellar/bodies/earth/normal-{id}.jpg');
     });
 
     this.createShader('stellar-body-earth', atmosphere_body_vert, earth_frag);
@@ -191,17 +187,12 @@ export default class OrreryRenderer extends Renderer {
         'uNormalCube': 'stellar-body-earth-normal-cube',
         'uLandinfoCube': 'stellar-body-earth-landinfo-cube',
         'uColorCube': 'stellar-body-earth-color-cube',
-        'uAtmosphereThickness': 'atmosphere-thickness-lut'
       });
     
     this.scene.root.add(earth);
 
-    let atmosphere_material = new Material(this.scene, 'atmosphere');
-    atmosphere_material.blend_mode = BLEND.ADD;
-    atmosphere_material.depth_mode = DEPTH.READ_ONLY;
-
     // Create the atmosphere.
-    let atmosphere_mesh = new MeshData('atmosphere', atmosphere_material)
+    let atmosphere_mesh = new MeshData('atmosphere', this.materials.atmosphere);
     atmosphere_mesh.order = RENDER_ORDER.TRANSPARENT;
     
     let atmosphere = new Spatial(this.scene)
@@ -231,7 +222,24 @@ export default class OrreryRenderer extends Renderer {
 
     earth.add(atmosphere);
 
-    this.bodies.earth.spatial = earth;
+    this.bodies.earth = {
+      parent: null,
+      orbit: new Orbit()
+        .setCircularOrbit(149598023 * 1000)
+        .setPeriodFromMass(5.972 * Math.pow(10, 24) + 1.98847 * Math.pow(10, 30)),
+      spatial: earth,
+      body: null
+    };
+
+    /*
+    this.bodies.moon = {
+      parent: this.bodies.earth,
+      orbit: new Orbit()
+        .setCircularOrbit(149598023 * 1000)
+        .setPeriodFromMass(5.972 * Math.pow(10, 24) + 1.98847 * Math.pow(10, 30)),
+      spatial: null,
+      body: null
+    };*/
 
     /*
     this.spinny = new Spatial(this.scene, 'spinny');
@@ -259,7 +267,7 @@ export default class OrreryRenderer extends Renderer {
     
     this.camera = new Spatial(this.scene)
       .setName('-camera')
-      .setData(new CameraData(60, 1, 7500000000*1000));
+      .setData(new CameraData(70, 1, 7500000000*1000));
 
     this.camera.position = vec3.fromValues(0, 0, 0);
     //quat.fromEuler(this.camera.rotation, 90, 0, 0);
@@ -350,9 +358,7 @@ export default class OrreryRenderer extends Renderer {
     //mat4.getTranslation(position, this.bodies.earth.spatial.modelview_matrix);
     //mat4.getTranslation(position, this.bodies.earth.spatial.world_matrix);
 
-    let position = vec3.create();
-    vec3.sub(position, this.bodies.sun.spatial.position, this.scene.origin.position);
-    this.scene.setUniform('uStarPosition', position);
+    this.scene.setUniform('uStarPosition', this.scene.transformOrigin(this.bodies.sun.spatial.position));
     
     this.scene.setUniform('uStarColor', vec3.fromValues(1, 0.95, 0.9));
     

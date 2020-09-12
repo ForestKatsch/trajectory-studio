@@ -68,7 +68,7 @@ export default class Texture extends Asset {
       min_filter: FILTER.LINEAR_MIPMAP_LINEAR,
       mag_filter: FILTER.LINEAR,
       wrap: [WRAP.REPEAT, WRAP.REPEAT],
-      anisotropy_level: 0,
+      anisotropy_level: 16,
       ...parameters
     };
   }

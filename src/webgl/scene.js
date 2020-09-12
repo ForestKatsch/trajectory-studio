@@ -92,6 +92,13 @@ export default class Scene {
     this.root.updatePost(renderer);
   }
 
+  transformOrigin(position) {
+    let transformed = vec3.create();
+    vec3.sub(transformed, position, this.origin.position);
+
+    return transformed;
+  }
+
   batch(renderer) {
     let renderables = this.root.getRenderables(renderer);
     
