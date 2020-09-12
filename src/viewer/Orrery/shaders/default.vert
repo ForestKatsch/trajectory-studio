@@ -22,6 +22,7 @@ uniform vec4 uAtmosphereRaleighScatter;
 varying vec3 vPosition;
 varying vec3 vScreenPosition;
 varying vec3 vWorldPosition;
+varying vec3 vViewDirectionModel;
 
 varying vec3 vWorldNormal;
 varying vec3 vNormal;
@@ -41,4 +42,5 @@ void main() {
   gl_Position = depthBufferLogVert(gl_Position, 1.0, uCameraData.y);
 
   vScreenPosition = gl_Position.xyz / gl_Position.w;
+  vViewDirectionModel = worldToModelDirection(getDirectionView());
 }

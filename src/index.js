@@ -1,3 +1,6 @@
+
+import {glMatrix} from 'gl-matrix';
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 //import './index.css';
@@ -5,6 +8,8 @@ import App from './App.jsx';
 import * as serviceWorker from './serviceWorker';
 
 import Logger from 'js-logger';
+
+glMatrix.setMatrixArrayType(Float64Array);
 
 Logger.useDefaults();
 Logger.setLevel(Logger.TRACE);

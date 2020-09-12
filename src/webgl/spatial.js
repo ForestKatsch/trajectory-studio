@@ -269,20 +269,6 @@ export default class Spatial {
     }
   }
 
-  updateMatrices() {
-    mat4.fromRotationTranslationScale(this.world_matrix, this.rotation, this.position, this.scale);
-
-    if(this.parent !== null) {
-      mat4.multiply(this.world_matrix, this.parent.world_matrix, this.world_matrix);
-    }
-    
-    if(this.scene.camera !== null) {
-      mat4.multiply(this.modelview_matrix, this.scene.camera.world_matrix_inverse, this.world_matrix);
-    }
-
-    mat4.invert(this.world_matrix_inverse, this.world_matrix);
-  }
-
   // Called before drawing; this function updates the scene tree.
   updatePost(renderer) {
     if(!this.enabled) {
@@ -297,6 +283,22 @@ export default class Spatial {
       child.updatePost(renderer);
     }
 
+  }
+
+  updateMatrices() {
+    mat4.fromRotationTranslationScale(this.world_matrix, this.rotation, this.position, this.scale);
+
+    if(this.parent !== null) {
+      mat4.multiply(this.world_matrix, this.parent.world_matrix, this.world_matrix);
+    } else {
+      //mat4.multiply(this.world_matrix, this.scene.world_matrix, this.world_matrix);
+    }
+
+    if(this.scene.camera !== null) {
+      mat4.multiply(this.modelview_matrix, this.scene.camera.world_matrix_inverse, this.world_matrix);
+    }
+
+    mat4.invert(this.world_matrix_inverse, this.world_matrix);
   }
 
   updateUniforms() {

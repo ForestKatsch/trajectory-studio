@@ -1,5 +1,9 @@
 
-import {vec3, vec4, quat} from 'gl-matrix';
+import {vec3, vec4, quat, mat4} from 'gl-matrix';
+
+import Logger from 'js-logger';
+
+import Orbit from '../../stellar/orbit.js';
 
 import Renderer from '../../webgl/renderer.js';
 import Scene, {RENDER_ORDER} from '../../webgl/scene.js';
@@ -31,13 +35,38 @@ export default class OrreryRenderer extends Renderer {
       focus: null,
     };
 
+    this.bodies = {};
+
+    this.bodies.sun = {
+      orbit: new Orbit(),
+      spatial: null
+    };
+
+    this.bodies.earth = {
+      orbit: new Orbit()
+        .setCircularOrbit(149598023 * 1000)
+        .setPeriodFromMass(5.972 * Math.pow(10, 24) + 1.98847 * Math.pow(10, 30)),
+      spatial: null
+    };
+
     this.transition_focus_position = new TransitionManager({
       position: vec3.create(),
       minimum_distance: 0,
     }, (from, to, fraction) => {
       let value = vec3.create();
 
-      vec3.lerp(value, from.position, to.position, fraction);
+      let resolvePosition = (pos) => {
+        if(typeof pos === typeof '') {
+          return this.bodies[pos].spatial.position;
+        }
+
+        return pos;
+      };
+      
+      let from_position = resolvePosition(from.position);
+      let to_position = resolvePosition(to.position);
+
+      vec3.lerp(value, from_position, to_position, fraction);
 
       return {
         position: value,
@@ -45,8 +74,6 @@ export default class OrreryRenderer extends Renderer {
       };
     });
 
-    this.options.focus_blend_time = 1;
-      
     super.init();
   }
 
@@ -71,6 +98,8 @@ export default class OrreryRenderer extends Renderer {
       max_anisotropy_level: 16,
       display_atmospheres: true
     };
+    
+    this.setFocusBody('earth', 0);
   }
 
   createShaders() {
@@ -101,7 +130,7 @@ export default class OrreryRenderer extends Renderer {
     // Create the earth material.
     let sun_material = new Material(this.scene, 'stellar-body-sun');
     
-    this.sun = new Spatial(this.scene)
+    let sun = new Spatial(this.scene)
       .setName('body-sun')
       .setData(new MeshData('quadsphere', sun_material))
       .addTo(this.scene);
@@ -109,10 +138,12 @@ export default class OrreryRenderer extends Renderer {
     let sun_diameter = 1.3927 * 1000000 * 1000;
     let sun_distance = 149.6 * 1000000 * 1000;
 
+    this.bodies.sun.spatial = sun;
+
     sun_material.setUniform('uStarColor', vec3.fromValues(1, 0.8, 0.5));
     
-    vec3.set(this.sun.scale, sun_diameter, sun_diameter, sun_diameter);
-    vec3.set(this.sun.position, 0, 0, sun_distance);
+    vec3.set(sun.scale, sun_diameter, sun_diameter, sun_diameter);
+    //vec3.set(sun.position, 0, 0, sun_distance);
   }
 
   createEarth() {
@@ -187,10 +218,10 @@ export default class OrreryRenderer extends Renderer {
     // Set up the scaling.
     let atmosphere_scatter_color = vec4.fromValues(10, 20, 40);
     vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 1 / 4);
-    vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 5.0);
+    vec4.scale(atmosphere_scatter_color, atmosphere_scatter_color, 15.0);
     atmosphere_scatter_color[3] = mie_power;
 
-    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / atmosphere_diameter / 2, 1 / 2, 20, mie_strength));
+    atmosphere.setUniform('uAtmosphereParameters', vec4.fromValues(1 / atmosphere_diameter / 2, 1 / 2, 30, mie_strength));
     atmosphere.setUniform('uAtmosphereRaleighScatter', atmosphere_scatter_color);
 
     earth.setUniform('uAtmosphereParameters', vec4.fromValues(1 / 2, atmosphere_diameter / 2, 20, mie_strength));
@@ -200,7 +231,7 @@ export default class OrreryRenderer extends Renderer {
 
     earth.add(atmosphere);
 
-    this.earth = earth;
+    this.bodies.earth.spatial = earth;
 
     /*
     this.spinny = new Spatial(this.scene, 'spinny');
@@ -230,7 +261,7 @@ export default class OrreryRenderer extends Renderer {
       .setName('-camera')
       .setData(new CameraData(60, 1, 7500000000*1000));
 
-    this.camera.position = vec3.fromValues(0, 0, this.earth.scale[0] * 1.2);
+    this.camera.position = vec3.fromValues(0, 0, 0);
     //quat.fromEuler(this.camera.rotation, 90, 0, 0);
     //this.camera.position = vec3.fromValues(0, 0, 10);
 
@@ -239,30 +270,39 @@ export default class OrreryRenderer extends Renderer {
     
     this.scene.setCamera(this.camera);
 
+    this.scene.origin = this.camera_focus;
+
     this.context.clearColor(0.0, 0.0, 0.0, 1.0);
   }
 
-  setFocusBody(name) {
+  setFocusBody(name, duration) {
     if(this.input.focus === name) {
-      return;
+      return false;
+    }
+
+    if(!(name in this.bodies)) {
+      Logger.warn(`Cannot assign non-existent body '${name}' as active body`);
+      return false;
+    }
+
+    if(duration === undefined || duration === null) {
+      duration = 5;
     }
 
     this.input.focus = name;
 
-    let focus_body = this.getFocusBody();
+    let focus_body = this.getFocusBody().spatial;
     
     this.transition_focus_position.push(new Transition({
-      position: focus_body.getWorldPosition(),
+      position: name,
       minimum_distance: focus_body.scale[0] / 2 * 1.2 + 20 * 1000
-    }, 5.0 * Math.pow(this.transition_focus_position.getCurrentFraction(), 1)));
+    }, duration * this.transition_focus_position.getCurrentFraction()));
+
+    return true;
   }
 
   getFocusBody() {
-    if(this.input.focus === 'sun') {
-      return this.sun;
-    } else {
-      return this.earth;
-    }
+    return this.bodies[this.input.focus];
   }
 
   setInput(new_input) {
@@ -289,19 +329,30 @@ export default class OrreryRenderer extends Renderer {
 
     quat.fromEuler(this.camera_focus.rotation, this.input.pitch, this.input.heading, 0);
   }
+
+  updateBodyOrbits() {
+    for(let body of Object.values(this.bodies)) {
+      vec3.copy(body.spatial.position, body.orbit.getPositionAtTime(Date.now() / 1000));
+    }
+  }
   
   handleUpdateBefore() {
+    this.updateBodyOrbits();
+    
     this.updateFromInput();
-    //let now = Date.now() / 100;
-
+    
     this.atmosphere.setEnabled(this.options.display_atmospheres);
 
-    let scale = 1;
-    this.scene.scale = vec3.fromValues(1 / scale, 1 / scale, 1 / scale);
-    
-    //this.scene.setUniform('uStarPosition', vec3.fromValues(Math.sin(now / 10.0) * 100000000, 20000000, Math.cos(now / 10.0) *100000000));
-    //this.scene.setUniform('uStarPosition', vec3.fromValues(0, 200000000, 300000000));
-    this.scene.setUniform('uStarPosition', this.sun.position);
+    //let scale = 1000000000000 * 1000;
+    //this.scene.scale = vec3.fromValues(1 / scale, 1 / scale, 1 / scale);
+
+    //let position = vec3.create();
+    //mat4.getTranslation(position, this.bodies.earth.spatial.modelview_matrix);
+    //mat4.getTranslation(position, this.bodies.earth.spatial.world_matrix);
+
+    let position = vec3.create();
+    vec3.sub(position, this.bodies.sun.spatial.position, this.scene.origin.position);
+    this.scene.setUniform('uStarPosition', position);
     
     this.scene.setUniform('uStarColor', vec3.fromValues(1, 0.95, 0.9));
     

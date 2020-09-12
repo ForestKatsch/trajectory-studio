@@ -98,11 +98,11 @@ class OrreryViewer extends React.Component {
     // Zoom
     let zoom_factor = 0.002;
 
-    let body_radius = this.renderer.getFocusBody().scale[0] / 2;
+    let body_radius = this.renderer.getFocusBody().spatial.scale[0] / 2;
 
     let distance = this.state.distance + values.zoom * zoom_factor * (this.renderer.camera.position[2] - body_radius);
     
-    let angle_factor = 0.3;
+    let angle_factor = 1;
     angle_factor *= Math.max(Math.min(this.state.distance / (body_radius * 2), 1.0), 0.1);
     
     this.setState((state, props) => ({

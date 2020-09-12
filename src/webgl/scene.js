@@ -1,5 +1,6 @@
 
 import Logger from 'js-logger';
+import {vec3, mat4} from 'gl-matrix';
 
 import Spatial from './spatial.js';
 import Material from './material.js';
@@ -21,6 +22,15 @@ export default class Scene {
 
     this.enabled = true;
 
+    this.origin = this.root;
+
+    // 
+    this.origin_matrix = mat4.create();
+    this.origin_matrix_inverse = mat4.create();
+
+    this.world_matrix = mat4.create();
+    this.scale = vec3.fromValues(1, 1, 1);
+    
     this.fallback_material = new Material(this, '@fallback');
 
     // The camera used to render this scene.
@@ -62,6 +72,21 @@ export default class Scene {
     if(!this.enabled) {
       return;
     }
+
+    //this.root.update(renderer);
+    //this.root.updatePost(renderer);
+    
+    //this.origin_matrix = this.origin.matrix;
+    //this.origin_matrix_inverse = this.origin.matrix_inverse;
+    
+    //mat4.fromScaling(this.world_matrix, this.scale);
+
+    if(this.origin.parent !== this.root) {
+      Logger.warn(`Origin object '${this.origin.name}' is not a direct child of the scene root object; results may be unexpected`);
+    }
+    
+    vec3.scale(this.root.position, this.origin.position, -1);
+    //vec3.set(this.root.position, 0, 10000000, 0);
     
     this.root.update(renderer);
     this.root.updatePost(renderer);
