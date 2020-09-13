@@ -310,7 +310,7 @@ export default class OrreryRenderer extends Renderer {
     
     this.camera = new Spatial(this.scene)
       .setName('-camera')
-      .setData(new CameraData(70, 1, 7500000000*1000));
+      .setData(new CameraData(50, 1, 7500000000*1000));
 
     this.camera.position = vec3.fromValues(0, 0, 0);
     //quat.fromEuler(this.camera.rotation, 90, 0, 0);

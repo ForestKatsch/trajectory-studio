@@ -7,6 +7,12 @@
   font-family: 'Fira Mono', monospace;
 }
 
+* {
+  font-weight: inherit;
+  font-family: inherit;
+  background-color: transparent;
+}
+
 :root, .App--theme-dark {
   --bg: hsl(220, 10%, 15%);
   --text-primary: hsl(220, 20%, 90%);

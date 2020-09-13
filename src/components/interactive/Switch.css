@@ -11,7 +11,7 @@
   min-width: var(--widget-size);
 
   --switch-element-height: 12px;
-  --switch-thumb-height: 20px;
+  --switch-thumb-height: 24px;
   --switch-element-width: calc(var(--widget-size));
   --switch-thumb-width: 14px;
 }

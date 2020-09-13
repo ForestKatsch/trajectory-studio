@@ -113,7 +113,7 @@ export class MouseInput extends Input {
     this.down_position = vec2.create();
     this.position = vec2.create();
     this.delta = vec2.create();
-    
+
     this.down = false;
     this.dragging = false;
   }
@@ -178,33 +178,70 @@ export class TouchInput extends Input {
     
     window.addEventListener('blur', this.handleBlur);
 
-    this.down_position = vec2.create();
     this.position = vec2.create();
     this.delta = vec2.create();
-    
+
+    this.touches = {};
+
+    this.zoom_delta = 0;
+
+    // Distance of all touches from the position.
+    this.distance = 0;
+
     this.down = false;
     this.dragging = false;
   }
 
-  getAverage(touches) {
-    touches = [...touches];
+  getAveragePosition() {
+    let average = vec2.fromValues(0, 0);
 
-    let average = vec2.create();
+    if(Object.keys(this.touches).length === 0) {
+      return average;
+    }
 
-    touches.forEach((touch) => {
-      vec2.add(average, average, [touch.clientX, touch.clientY]);
+    Object.values(this.touches).forEach((touch) => {
+      vec2.add(average, average, touch.position);
     });
 
-    vec2.scale(average, 1 / touches.length);
+    vec2.scale(average, average, 1 / Object.keys(this.touches).length);
 
     return average;
   }
 
+  getAverageDistance() {
+    let average = 0;
+
+    /*
+    if(Object.keys(this.touches).length <= 1) {
+      return average;
+    }*/
+
+    Object.values(this.touches).forEach((touch) => {
+      average += vec2.distance(this.position, touch.position);
+    });
+
+    average = average / Object.keys(this.touches).length;
+
+    return average;
+  }
+
+  touchCountChanged() {
+    vec2.set(this.position, this.getAveragePosition());
+
+    this.distance = this.getAverageDistance();
+  }
+
   handleTouchStart(event) {
-    vec2.copy(this.down_position, this.getAverage(event.changedTouches));
-    vec2.copy(this.position, this.down_position);
+    [...event.changedTouches].forEach((touch) => {
+      this.touches[touch.identifier.toString()] = {
+        position: vec2.fromValues(touch.clientX, touch.clientY)
+      };
+      
+    });
 
     this.down = true;
+    
+    this.touchCountChanged();
   }
   
   handleTouchMove(event) {
@@ -212,24 +249,54 @@ export class TouchInput extends Input {
       return;
     }
     
-    let current_position = this.getAverage(event.changedTouches);
+    [...event.changedTouches].forEach((touch) => {
+      vec2.set(this.touches[touch.identifier.toString()].position, touch.clientX, touch.clientY);
+    });
 
-    vec2.subtract(this.delta, this.position, current_position);
+    let current_position = this.getAveragePosition();
+    
+    let delta = vec2.create();
+    vec2.subtract(delta, this.position, current_position);
+    vec2.add(this.delta, this.delta, delta);
 
     vec2.copy(this.position, current_position);
-
-    console.log(this.delta);
     
+    let current_distance = this.getAverageDistance();
+    if(this.distance !== 0 && current_distance !== 0) {
+      this.zoom_delta += this.distance - current_distance;
+    }
+
+    this.distance = current_distance;
+
     this.set('heading', this.delta[0]);
     this.set('pitch', this.delta[1]);
+    this.set('zoom', this.zoom_delta * 3);
+    
+    event.preventDefault();
   }
   
   handleTouchEnd(event) {
-    this.down = false;
+    [...event.changedTouches].forEach((touch) => {
+      delete this.touches[touch.identifier.toString()];
+    });
+
+    this.touchCountChanged();
+    
+    if(Object.keys(this.touches).length === 0) {
+      this.down = false;
+    }
   }
   
   handleBlur(event) {
     this.down = false;
+  }
+  
+  resetValues() {
+    super.resetValues();
+
+    vec2.set(this.delta, 0, 0);
+
+    this.zoom_delta = 0;
   }
   
 }
@@ -322,7 +389,7 @@ export default class Navigation {
     
     this.input.init();
     
-    //this.input.add(new TouchInput());
+    this.input.add(new TouchInput());
     this.input.add(new MouseInput());
   }
   

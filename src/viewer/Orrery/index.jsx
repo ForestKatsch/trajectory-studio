@@ -10,6 +10,7 @@ import Navigation from './navigation.js';
 import EmptyState from '../../components/display/Empty.jsx';
 
 import Switch from '../../components/interactive/Switch.jsx';
+import Button from '../../components/interactive/Button.jsx';
 //import Select from '../../components/interactive/Select.jsx';
 import CircularProgress from '../../components/progress/Circular.jsx';
 
@@ -130,6 +131,14 @@ class OrreryViewer extends React.Component {
     };
   }
 
+  createFocusButtonHandler(focus) {
+    return () => {
+      this.setState(state => ({
+        focus: focus
+      }));
+    };
+  }
+
   render() {
     var emptyState = null;
 
@@ -186,15 +195,17 @@ class OrreryViewer extends React.Component {
             checked={this.state.use_anisotropy}
             onChange={this.createSwitchHandler('use_anisotropy')}
           />*/}
-          <Switch
-            label="Focus on Sun"
-            checked={this.state.focus === 'star/sol'}
-            onChange={() => {this.state.focus === 'star/sol' ? this.setState({focus: 'planet/earth'}) : this.setState({focus: 'star/sol'})}}
+          <Button
+            label="Focus Sol"
+            onClick={this.createFocusButtonHandler('star/sol')}
           />
-          <Switch
-            label="Focus on Moon"
-            checked={this.state.focus === 'planet/earth/moon'}
-            onChange={() => {this.state.focus === 'planet/earth/moon' ? this.setState({focus: 'planet/earth'}) : this.setState({focus: 'planet/earth/moon'})}}
+          <Button
+            label="Focus Earth"
+            onClick={this.createFocusButtonHandler('planet/earth')}
+          />
+          <Button
+            label="Focus Moon"
+            onClick={this.createFocusButtonHandler('planet/earth/moon')}
           />
           <Switch
             label="Planet Atmospheres"
@@ -212,6 +223,7 @@ class OrreryViewer extends React.Component {
           >
             {this.renderer !== null ? (
             <ul className={`stats`}>
+              <li>{this.state.focus}</li>
               <li>{(this.renderer.camera.position[2] / 1000 - 6371).toFixed(1)} km altitude</li>
               <li>{this.state.stats_fps.toFixed(1)} fps</li>
               <li>{this.state.stats_draw_call_count} draw calls</li>
