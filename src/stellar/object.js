@@ -87,10 +87,6 @@ export default class StellarObject {
 
 export class StellarObjectStar extends StellarObject {
 
-  constructor(name) {
-    super(name);
-  }
-  
 }
 
 export class StellarObjectPlanet extends StellarObject {

@@ -1,12 +1,10 @@
 
-import {vec3, vec4, quat, mat4} from 'gl-matrix';
+import {vec3, vec4, quat} from 'gl-matrix';
 
 import Logger from 'js-logger';
 
-import Orbit from '../../stellar/orbit.js';
 import {StellarObjectStar, StellarObjectPlanet} from '../../stellar/object.js';
 import {SolarSystem} from '../../stellar/system.js';
-import {MASS, TIME, LENGTH, MILLION, BILLION, format} from '../../stellar/units.js';
 
 import Renderer from '../../webgl/renderer.js';
 import Scene, {RENDER_ORDER} from '../../webgl/scene.js';

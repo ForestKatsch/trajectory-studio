@@ -48,10 +48,6 @@ export default class StellarSystem {
 
 export class SolarSystem extends StellarSystem {
 
-  constructor() {
-    super();
-  }
-
   init() {
     let sol = new StellarObjectStar('star/sol')
         .setRadius(1.3927 * MILLION * LENGTH.KILOMETER * 0.5);
