@@ -38,7 +38,7 @@ class OrreryViewer extends React.Component {
       stats_draw_call_count: 0,
       stats_frame_count: 0,
 
-      focus: 'earth',
+      focus: 'planet/earth',
 
       heading: 150,
       pitch: -10,
@@ -98,12 +98,12 @@ class OrreryViewer extends React.Component {
     // Zoom
     let zoom_factor = 0.003;
 
-    let body_radius = this.renderer.getFocusBody().spatial.scale[0] / 2;
+    let body_radius = this.renderer.getFocusObject().radius;
 
-    let distance = this.state.distance + values.zoom * zoom_factor * (this.renderer.camera.position[2] - body_radius);
+    let distance = this.state.distance + values.zoom * zoom_factor * (this.renderer.camera.position[2] - body_radius * 1.5);
     
-    let angle_factor = 0.2;
-    angle_factor *= Math.max(Math.min(this.state.distance / (body_radius * 2), 1.0), 0.25);
+    let angle_factor = 0.15;
+    angle_factor *= Math.max(Math.min(this.state.distance / (body_radius * 2), 1.0), 0.3);
     
     this.setState((state, props) => ({
       heading: state.heading + values.heading * angle_factor,
@@ -150,7 +150,7 @@ class OrreryViewer extends React.Component {
       this.renderer.setOption('max_anisotropy_level', this.state.use_anisotropy ? 16 : 0);
       this.renderer.setOption('paused', this.state.paused);
 
-      this.renderer.setFocusBody(this.state.focus);
+      this.renderer.setFocusObject(this.state.focus);
         
       this.renderer.setInput({
         heading: this.state.heading,
@@ -188,8 +188,13 @@ class OrreryViewer extends React.Component {
           />*/}
           <Switch
             label="Focus on Sun"
-            checked={this.state.focus === 'sun'}
-            onChange={() => {this.state.focus === 'sun' ? this.setState({focus: 'earth'}) : this.setState({focus: 'sun'})}}
+            checked={this.state.focus === 'star/sol'}
+            onChange={() => {this.state.focus === 'star/sol' ? this.setState({focus: 'planet/earth'}) : this.setState({focus: 'star/sol'})}}
+          />
+          <Switch
+            label="Focus on Moon"
+            checked={this.state.focus === 'planet/earth/moon'}
+            onChange={() => {this.state.focus === 'planet/earth/moon' ? this.setState({focus: 'planet/earth'}) : this.setState({focus: 'planet/earth/moon'})}}
           />
           <Switch
             label="Planet Atmospheres"

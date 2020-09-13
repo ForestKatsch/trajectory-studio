@@ -82,7 +82,7 @@ export default class TransitionManager {
   cullInvisibleTransitions() {
     let first_opaque_transition_index = -1;
     for(let i=0; i<this.transitions.length; i++) {
-      if(this.transitions[i].influence >= 0.999999) {
+      if(this.transitions[i].influence >= 0.9999999) {
         first_opaque_transition_index = i;
       }
     }

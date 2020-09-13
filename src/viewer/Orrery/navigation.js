@@ -101,7 +101,7 @@ export class MouseInput extends Input {
     
     this.handleMouseOut = this.handleMouseOut.bind(this);
 
-    this.element.addEventListener('wheel', this.handleWheel);
+    this.element.addEventListener('wheel', this.handleWheel, {passive: true});
     
     this.element.addEventListener('mousedown', this.handleMouseDown);
     this.element.addEventListener('mousemove', this.handleMouseMove);
@@ -130,6 +130,12 @@ export class MouseInput extends Input {
     
     this.down = true;
   }
+
+  resetValues() {
+    super.resetValues();
+
+    vec2.set(this.delta, 0, 0);
+  }
   
   handleMouseMove(event) {
     if(!this.down) {
@@ -137,7 +143,9 @@ export class MouseInput extends Input {
     }
     
     let current_position = vec2.fromValues(event.clientX, event.clientY);
-    vec2.subtract(this.delta, this.position, current_position);
+    let delta = vec2.create();
+    vec2.subtract(delta, this.position, current_position);
+    vec2.add(this.delta, this.delta, delta);
 
     vec2.copy(this.position, current_position);
 
@@ -150,6 +158,77 @@ export class MouseInput extends Input {
   }
   
   handleMouseOut(event) {
+    this.down = false;
+  }
+  
+}
+
+export class TouchInput extends Input {
+
+  init() {
+    this.handleTouchStart = this.handleTouchStart.bind(this);
+    this.handleTouchMove = this.handleTouchMove.bind(this);
+    this.handleTouchEnd = this.handleTouchEnd.bind(this);
+    this.handleBlur = this.handleBlur.bind(this);
+    
+    this.element.addEventListener('touchstart', this.handleTouchStart);
+    this.element.addEventListener('touchmove', this.handleTouchMove);
+    this.element.addEventListener('touchend', this.handleTouchEnd);
+    this.element.addEventListener('touchcancel', this.handleTouchEnd);
+    
+    window.addEventListener('blur', this.handleBlur);
+
+    this.down_position = vec2.create();
+    this.position = vec2.create();
+    this.delta = vec2.create();
+    
+    this.down = false;
+    this.dragging = false;
+  }
+
+  getAverage(touches) {
+    touches = [...touches];
+
+    let average = vec2.create();
+
+    touches.forEach((touch) => {
+      vec2.add(average, average, [touch.clientX, touch.clientY]);
+    });
+
+    vec2.scale(average, 1 / touches.length);
+
+    return average;
+  }
+
+  handleTouchStart(event) {
+    vec2.copy(this.down_position, this.getAverage(event.changedTouches));
+    vec2.copy(this.position, this.down_position);
+
+    this.down = true;
+  }
+  
+  handleTouchMove(event) {
+    if(!this.down) {
+      return;
+    }
+    
+    let current_position = this.getAverage(event.changedTouches);
+
+    vec2.subtract(this.delta, this.position, current_position);
+
+    vec2.copy(this.position, current_position);
+
+    console.log(this.delta);
+    
+    this.set('heading', this.delta[0]);
+    this.set('pitch', this.delta[1]);
+  }
+  
+  handleTouchEnd(event) {
+    this.down = false;
+  }
+  
+  handleBlur(event) {
     this.down = false;
   }
   
@@ -182,6 +261,8 @@ export class SmoothInput extends Input {
     if(this.last_sample_time > 0) {
       elapsed = Math.min(this.last_sample_time - now, 0.2);
     }
+
+    elapsed = 1 / 60;
     
     this.last_sample_time = now;
 
@@ -213,7 +294,7 @@ export class SmoothInput extends Input {
         continue;
       }
 
-      this.smooth_values[key] += (this.smooth_values[key] - new_value) / (parameters.smoothing / elapsed);
+      this.smooth_values[key] += (new_value - this.smooth_values[key]) * (1-Math.pow(0.5, elapsed * parameters.smoothing));
     }
 
     return this.smooth_values;
@@ -234,13 +315,14 @@ export default class Navigation {
     };
 
     this.input.smoothing = {
-      zoom: { smoothing: 0.05 },
-      heading: { smoothing: 0.01 },
-      pitch: { smoothing: 0.01 }
+      zoom: { smoothing: 30 },
+      heading: { smoothing: 30 },
+      pitch: { smoothing: 30 }
     };
     
     this.input.init();
     
+    //this.input.add(new TouchInput());
     this.input.add(new MouseInput());
   }
   

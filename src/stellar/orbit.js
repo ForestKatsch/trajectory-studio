@@ -76,8 +76,6 @@ export default class Orbit {
     
     this.period = 2 * Math.PI * Math.sqrt(Math.pow(this.semimajor, 3) / (GRAVITATIONAL_CONSTANT * mass));
 
-    console.log(this.period / 60 / 60 / 24 / 365);
-
     return this;
   }
 
@@ -136,13 +134,24 @@ export default class Orbit {
 
   // Given a true anomaly in radians, returns the position of the body at that point.
   getPositionAtTrueAnomaly(true_anomaly) {
+    if(this.semimajor === 0) {
+      return vec3.create();
+    }
+    
     let radius = this.getRadiusAtTrueAnomaly(true_anomaly);
 
     // This is the position, along the X-Z plane.
     // We need to ruin the precision here because Unity is really stupid and has decided to
     // not include double precision multiplications against quaternions.
     let position = vec3.fromValues(Math.sin(true_anomaly * (Math.PI * 2)) * radius, 0, Math.cos(true_anomaly * (Math.PI * 2)) * radius);
+    let rotation = quat.create();
+    quat.identity(rotation);
+    
+    quat.rotateY(rotation, rotation, -this.argument_of_periapsis);
+    quat.rotateX(rotation, rotation, -this.inclination);
+    quat.rotateY(rotation, rotation, -this.raan);
 
+    vec3.transformQuat(position, position, rotation);
     /*
     position = math.mul(Unity.Mathematics.quaternion.RotateY((float) -this.argument_of_periapsis), position);
     position = math.mul(Unity.Mathematics.quaternion.RotateX((float) -this.inclination), position);
@@ -164,6 +173,10 @@ export default class Orbit {
   }
 
   getVelocityAtTime(time) {
+    if(this.semimajor === 0) {
+      return vec3.create();
+    }
+    
     return vec3.fromValues(0, 0, 0);
   }
 

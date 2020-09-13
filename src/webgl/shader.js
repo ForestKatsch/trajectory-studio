@@ -421,7 +421,7 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
       return texture;
     }
 
-    if(!texture.isReady()) {
+    if(!texture || !texture.isReady()) {
       // NBD, just get a fallback texture. (Even if this texture is the wrong type, who cares? We're not using it anyway because it's not ready yet.)
     } else if(!texture.name.startsWith('@') && texture.type !== null) {
       Logger.warn(`Texture '${texture.name}' on shader '${this.name}' is wrong texture type (should be '${TYPE_NAMES[expected_type]}', found '${TYPE_NAMES[texture.type]}'), using fallback`);
@@ -432,7 +432,7 @@ ${value[3]}, ${value[7]}, ${value[11]}, ${value[15]}`;
     //Logger.debug(`Finding fallback for '${texture_name}'`);
 
     // Find the appropriate fallback texture name.
-    if(texture.fallback) {
+    if(texture && texture.fallback) {
       fallback = texture.fallback;
     } else if(expected_type === TYPE.TEXTURE_2D) {
       fallback = '@fallback';

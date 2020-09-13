@@ -57,7 +57,8 @@ const shaderLoader = require('./shaderloader.js');
 const copyPatterns = [];
 
 const fromBodies = [
-  'src/viewer/Orrery/bodies/earth/{color,landinfo,normal}-000[0-5].jpg'
+  'src/viewer/Orrery/bodies/earth/{color,landinfo,normal}-000[0-5].jpg',
+  'src/viewer/Orrery/bodies/moon/{color,normal}-000[0-5].jpg'
 ];
 
 for(let i of fromBodies) {

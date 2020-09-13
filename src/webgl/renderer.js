@@ -501,7 +501,7 @@ export default class Renderer extends Asset {
   }
 
   // The primary loop function. This handles everything about the draw loop, from start to finish.
-  tick() {
+  tick(now) {
     // If we've been deinitialized, bail out.
     if(this.context === null || this.terminate_drawing) {
       return false;
@@ -548,12 +548,9 @@ export default class Renderer extends Asset {
         renderer: this
       });
 
-      // Calculate performance.
-      let end = Date.now() / 1000;
-
       // Only update if we've rendered at least one frame.
       if(this.performance.frame_start > 0) {
-        this.performance.frametime_total += end - this.performance.frame_start;
+        this.performance.frametime_total += (now / 1000) - this.performance.frame_start;
         this.performance.frametime_samples += 1;
 
         // Every 8 frames, update the FPS and reset the stats for FPS.
@@ -565,7 +562,7 @@ export default class Renderer extends Asset {
         }
       }
 
-      this.performance.frame_start = end;
+      this.performance.frame_start = (now / 1000);
       this.performance.current_frame += 1;
 
       this.emit('tickafter', {

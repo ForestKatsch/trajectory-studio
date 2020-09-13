@@ -166,7 +166,7 @@ vec3 atmosphereColorRay(vec3 position, vec3 direction, float length_ray, vec3 di
     color += frac_density * frac_mie * transmittance * length_stepSize;
   }
 
-  return color;
+  return color * 2.0;
 }
 
 // Returns the color of a point in the atmosphere. Ignores the planet for better blending.
