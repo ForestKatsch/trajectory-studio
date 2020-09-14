@@ -224,7 +224,7 @@ class OrreryViewer extends React.Component {
             {this.renderer !== null ? (
             <ul className={`stats`}>
               <li>{this.state.focus}</li>
-              <li>{(this.renderer.camera.position[2] / 1000 - 6371).toFixed(1)} km altitude</li>
+              <li>{((this.renderer.camera.position[2] - this.renderer.getFocusObject().radius) / 1000).toFixed(1)} km altitude</li>
               <li>{this.state.stats_fps.toFixed(1)} fps</li>
               <li>{this.state.stats_draw_call_count} draw calls</li>
               <li>{this.state.stats_vertex_count} vertices</li>
